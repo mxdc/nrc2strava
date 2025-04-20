@@ -2,7 +2,12 @@
 
 This project exports run activities from **Nike Run Club (NRC)** and imports them into the **Strava platform**. It supports both outdoor and indoor run activities.
 
-Initially, I used the project [nrc-exporter](https://github.com/yasoob/nrc-exporter) to import my NRC runs. However, treadmill runs were not supported due to the limitations of the `.gpx` format. To address this, I started this project to convert NRC runs into the **FIT format**, which is more advanced and fully compatible with Strava.
+Initially, I used the project [nrc-exporter](https://github.com/yasoob/nrc-exporter) to import my NRC runs. However, treadmill runs were not supported due to the limitations of the `.gpx` format. To address this, I started this project to convert NRC runs into the **FIT format**, which is more advanced and fully compatible with Strava
+
+Specific to this project:
+- Uses the **.FIT file format**
+- Compatible with both indoor (treadmill) and outdoor run activities.
+- Works with regular tokens, no need to create a Strava App.
 
 The process is divided into 3 steps:
 
