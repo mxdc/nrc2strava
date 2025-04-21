@@ -8,11 +8,11 @@ import (
 
 	kingpin "github.com/alecthomas/kingpin/v2"
 	"github.com/mxdc/nrc2strava/converter"
+	"github.com/mxdc/nrc2strava/fit"
 	"github.com/mxdc/nrc2strava/migrator"
 	"github.com/mxdc/nrc2strava/nrc"
 	"github.com/mxdc/nrc2strava/parser"
 	"github.com/mxdc/nrc2strava/strava"
-	"github.com/mxdc/nrc2strava/writer"
 )
 
 var (
@@ -110,7 +110,13 @@ func handleUpload(fitActivityDir, fitActivityFile, strava4Session, xpSessionIden
 				filePath := filepath.Join(fitActivityDir, file.Name())
 				fmt.Printf("Processing file: %s\n", filePath)
 
-				stravaUploader.UploadActivity(filePath)
+				success := stravaUploader.UploadActivity(filePath)
+				// move the file to a different directory if upload is successful
+				if success {
+					destinationDir := filepath.Join(fitActivityDir, "uploaded")
+					fit.InitActivityMover(destinationDir).MoveFIT(filePath, file.Name())
+				}
+
 				if index < total-1 {
 					fmt.Println("Waiting for 10 seconds before processing the next file...")
 					time.Sleep(10 * time.Second)
@@ -128,7 +134,7 @@ func handleConvert(activitiesDir, activityFile, outputDir string) {
 
 	activitiesParser := parser.InitActivitiesParser(activitiesDir, activityFile)
 	activitiesConverter := converter.InitActivitiesConverter()
-	activityWriter := writer.InitActivityWriter(outputDir)
+	activityWriter := fit.InitActivityWriter(outputDir)
 
 	if len(activityFile) > 0 {
 		nikeActivity := activitiesParser.LoadActivity()
