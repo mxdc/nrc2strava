@@ -115,14 +115,16 @@ func handleUpload(fitActivityDir, fitActivityFile, strava4Session, xpSessionIden
 				logger.Printf("Processing file: %s\n", filePath)
 
 				success := stravaUploader.UploadActivity(filePath)
-				// move the file to a different directory if upload is successful
-				if success {
-					destinationDir := filepath.Join(fitActivityDir, "uploaded")
-					fit.InitActivityMover(destinationDir).MoveFIT(filePath, file.Name())
+				if !success {
+					return
 				}
 
+				// move the file to a different directory if upload is successful
+				destinationDir := filepath.Join(fitActivityDir, "uploaded")
+				fit.InitActivityMover(destinationDir).MoveFIT(filePath, file.Name())
+
 				if index < total-1 {
-					fmt.Println("Waiting for 10 seconds before processing the next file...")
+					logger.Println("Waiting for 10 seconds before processing the next file...")
 					time.Sleep(10 * time.Second)
 				}
 			}
