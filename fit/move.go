@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mxdc/nrc2strava/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,6 +22,7 @@ func InitActivityMover(outputDir string) *ActivityMover {
 
 	mover.destinationDir = outputDir
 	mover.logger = logrus.New()
+	mover.logger.SetFormatter(utils.LogFormat)
 
 	return &mover
 }

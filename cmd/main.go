@@ -12,6 +12,7 @@ import (
 	"github.com/mxdc/nrc2strava/nrc"
 	"github.com/mxdc/nrc2strava/parser"
 	"github.com/mxdc/nrc2strava/strava"
+	"github.com/mxdc/nrc2strava/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,6 +48,7 @@ var (
 
 func init() {
 	kingpin.Parse()
+	logger.SetFormatter(utils.LogFormat)
 }
 
 func main() {

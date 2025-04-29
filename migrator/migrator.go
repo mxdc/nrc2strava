@@ -9,6 +9,7 @@ import (
 	"github.com/mxdc/nrc2strava/nrc"
 	"github.com/mxdc/nrc2strava/strava"
 	"github.com/mxdc/nrc2strava/types"
+	"github.com/mxdc/nrc2strava/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,11 +23,14 @@ type Migrator struct {
 
 // NewMigrator initializes a new NewMigrator instance
 func NewMigrator(nikeApi *nrc.NikeApi, stravaWeb *strava.StravaWeb, FitOutputDir string) *Migrator {
+	logger := logrus.New()
+	logger.SetFormatter(utils.LogFormat)
+
 	return &Migrator{
 		nikeApi:      nikeApi,
 		stravaWeb:    stravaWeb,
 		FitOutputDir: FitOutputDir,
-		logger:       logrus.New(),
+		logger:       logger,
 	}
 }
 

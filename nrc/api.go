@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/mxdc/nrc2strava/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,11 +23,14 @@ type NikeApi struct {
 
 // NewNikeApi initializes a new NikeApi instance
 func NewNikeApi(accessToken string) *NikeApi {
+	logger := logrus.New()
+	logger.SetFormatter(utils.LogFormat)
+
 	return &NikeApi{
 		ActivityListURL:    "https://api.nike.com/plus/v3/activities/before_id/v3",
 		ActivityDetailsURL: "https://api.nike.com/sport/v3/me/activity/%s?metrics=ALL",
 		AccessToken:        accessToken,
-		logger:             logrus.New(),
+		logger:             logger,
 	}
 }
 

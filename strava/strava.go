@@ -3,6 +3,7 @@ package strava
 import (
 	"time"
 
+	"github.com/mxdc/nrc2strava/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,10 +18,13 @@ type StravaUploader struct {
 
 // NewStravaUploader initializes a new StravaUploader instance
 func NewStravaUploader(fitActivityFile string, stravaWeb *StravaWeb) *StravaUploader {
+	logger := logrus.New()
+	logger.SetFormatter(utils.LogFormat)
+
 	return &StravaUploader{
 		FitActivityFile: fitActivityFile,
 		Client:          stravaWeb,
-		logger:          logrus.New(),
+		logger:          logger,
 	}
 }
 
@@ -42,7 +46,7 @@ func (s *StravaUploader) UploadActivity(fitActivityFilepath string) bool {
 
 	uploadActivity, err := s.Client.UploadActivity(fitActivityFilepath, token)
 	if err != nil {
-		s.logger.Errorf("%v\n", err)
+		s.logger.Errorf("Upload error: %v\n", err)
 		return false
 	}
 
