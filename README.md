@@ -18,7 +18,7 @@ Features:
 
 We will import the entire NRC activity history into Strava by following these steps.
 
-### Build
+### 0. Build
 
 Clone and compile:
 ```bash
