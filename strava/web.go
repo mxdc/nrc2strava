@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 )
 
@@ -24,12 +24,12 @@ type StravaWeb struct {
 	EndpointUpload string
 
 	// logger
-	logger *log.Logger
+	logger *logrus.Logger
 }
 
 // NewStravaWeb initializes a new StravaWeb instance
 func NewStravaWeb(strava4Session, xpSessionIdentifier string) *StravaWeb {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := logrus.New()
 
 	return &StravaWeb{
 		// Cookie Data | Domain: www.strava.com
@@ -47,7 +47,7 @@ func NewStravaWeb(strava4Session, xpSessionIdentifier string) *StravaWeb {
 
 // LoadAuthenticityToken performs a GET request and extracts the authenticity token from the HTML response
 func (web *StravaWeb) LoadAuthenticityToken(endpoint string) (string, error) {
-	web.logger.Printf("Loading authenticity token from: %s\n", endpoint)
+	web.logger.Infof("Loading authenticity token from: %s\n", endpoint)
 
 	// Create the HTTP request
 	req, err := http.NewRequest("GET", endpoint, nil)
@@ -74,9 +74,9 @@ func (web *StravaWeb) LoadAuthenticityToken(endpoint string) (string, error) {
 	defer resp.Body.Close()
 
 	// Print the response status
-	web.logger.Printf("Response status: %s\n", resp.Status)
+	web.logger.Infof("Response status: %s\n", resp.Status)
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Error loading authenticity token: %s", resp.Status)
+		return "", fmt.Errorf("error loading authenticity token: %s", resp.Status)
 	}
 
 	// Parse the HTML response to extract the authenticity token
@@ -157,7 +157,7 @@ type ActivitiesResponse struct {
 }
 
 func (web *StravaWeb) UploadActivity(filePath, token string) (*UploadedActivity, error) {
-	web.logger.Printf("Uploading activity file: %s\n", filePath)
+	web.logger.Infof("Uploading activity file: %s\n", filePath)
 
 	// Open the file
 	file, err := os.Open(filePath)
@@ -218,9 +218,9 @@ func (web *StravaWeb) UploadActivity(filePath, token string) (*UploadedActivity,
 	defer resp.Body.Close()
 
 	// Print the response status
-	web.logger.Printf("Response status: %s\n", resp.Status)
+	web.logger.Infof("Response status: %s\n", resp.Status)
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Error uploading activity: %s", resp.Status)
+		return nil, fmt.Errorf("error uploading activity: %s", resp.Status)
 	}
 
 	// Read and parse the response body
@@ -239,5 +239,5 @@ func (web *StravaWeb) UploadActivity(filePath, token string) (*UploadedActivity,
 		return &response[0], nil
 	}
 
-	return nil, fmt.Errorf("No activity uploaded")
+	return nil, fmt.Errorf("no activity uploaded")
 }

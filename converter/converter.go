@@ -1,9 +1,6 @@
 package converter
 
 import (
-	"log"
-	"os"
-
 	"github.com/muktihari/fit/profile"
 	"github.com/muktihari/fit/profile/basetype"
 	"github.com/muktihari/fit/profile/filedef"
@@ -12,19 +9,20 @@ import (
 	"github.com/muktihari/fit/proto"
 	"github.com/mxdc/nrc2strava/types"
 	"github.com/mxdc/nrc2strava/utils"
+	"github.com/sirupsen/logrus"
 )
 
 // ActivitiesConverter converts the activities into the FIT Activity format
 type ActivitiesConverter struct {
 	// logger
-	logger *log.Logger
+	logger *logrus.Logger
 }
 
 // InitActivitiesConverter returns an initialized ActivitiesConverter
 func InitActivitiesConverter() *ActivitiesConverter {
 	var parser ActivitiesConverter
 
-	parser.logger = log.New(os.Stderr, "", log.LstdFlags)
+	parser.logger = logrus.New()
 
 	return &parser
 }

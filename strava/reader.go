@@ -1,25 +1,25 @@
 package strava
 
 import (
-	"log"
 	"os"
 
 	"github.com/muktihari/fit/decoder"
 	"github.com/muktihari/fit/profile/mesgdef"
 	"github.com/muktihari/fit/profile/typedef"
 	"github.com/muktihari/fit/proto"
+	"github.com/sirupsen/logrus"
 )
 
 type FitActivity struct {
 	Fit *proto.FIT
 
 	// logger
-	logger *log.Logger
+	logger *logrus.Logger
 }
 
 // NewFitActivity initializes a new FitActivity instance
 func NewFitActivity(fitActivityFilepath string) *FitActivity {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := logrus.New()
 
 	// Open the .fit file
 	file, err := os.Open(fitActivityFilepath)

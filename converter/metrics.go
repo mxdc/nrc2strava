@@ -1,8 +1,6 @@
 package converter
 
 import (
-	"log"
-	"os"
 	"strings"
 	"time"
 
@@ -10,6 +8,7 @@ import (
 	"github.com/muktihari/fit/profile/typedef"
 	"github.com/mxdc/nrc2strava/types"
 	"github.com/mxdc/nrc2strava/utils"
+	"github.com/sirupsen/logrus"
 )
 
 // MetricsConverter converts the NIke Activities Metrics into FIT Activity Records
@@ -48,7 +47,7 @@ type MetricsConverter struct {
 	NikefuelSummary types.Summary
 
 	// logger
-	logger *log.Logger
+	logger *logrus.Logger
 }
 
 func isIndoor(tags map[string]string) bool {
@@ -71,7 +70,7 @@ func InitMetricsConverter(
 ) *MetricsConverter {
 	var parser MetricsConverter
 
-	parser.logger = log.New(os.Stderr, "", log.LstdFlags)
+	parser.logger = logrus.New()
 	parser.StartEpochMs = StartEpochMs
 	parser.EndEpochMs = EndEpochMs
 	parser.Indoor = isIndoor(Tags)
@@ -555,7 +554,7 @@ func (m *MetricsConverter) ParseRecords() []*mesgdef.Record {
 	StartEpochSeconds := m.StartEpochMs / 1000
 	EndEpochSeconds := m.EndEpochMs / 1000
 	totalRecords := EndEpochSeconds - StartEpochSeconds + 1
-	m.logger.Printf("Number of records: %d\n", totalRecords)
+	m.logger.Infof("Number of records: %d\n", totalRecords)
 
 	records := make([]*mesgdef.Record, totalRecords)
 	for i := range totalRecords {

@@ -2,9 +2,6 @@ package migrator
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
-	"os"
 	"time"
 
 	"github.com/mxdc/nrc2strava/converter"
@@ -12,6 +9,7 @@ import (
 	"github.com/mxdc/nrc2strava/nrc"
 	"github.com/mxdc/nrc2strava/strava"
 	"github.com/mxdc/nrc2strava/types"
+	"github.com/sirupsen/logrus"
 )
 
 // Migrator represents the Migrator client
@@ -19,7 +17,7 @@ type Migrator struct {
 	nikeApi      *nrc.NikeApi
 	stravaWeb    *strava.StravaWeb
 	FitOutputDir string
-	logger       *log.Logger
+	logger       *logrus.Logger
 }
 
 // NewMigrator initializes a new NewMigrator instance
@@ -28,7 +26,7 @@ func NewMigrator(nikeApi *nrc.NikeApi, stravaWeb *strava.StravaWeb, FitOutputDir
 		nikeApi:      nikeApi,
 		stravaWeb:    stravaWeb,
 		FitOutputDir: FitOutputDir,
-		logger:       log.New(os.Stderr, "", log.LstdFlags),
+		logger:       logrus.New(),
 	}
 }
 
@@ -36,23 +34,23 @@ func NewMigrator(nikeApi *nrc.NikeApi, stravaWeb *strava.StravaWeb, FitOutputDir
 func (m *Migrator) MigrateActivities() {
 	activitiesIds, err := m.nikeApi.GetActivityList()
 	if err != nil {
-		m.logger.Printf("Error fetching activity list: %v\n", err)
+		m.logger.Errorf("Error fetching activity list: %v\n", err)
 		return
 	}
 
-	m.logger.Printf("Total activity(s) to migrate: %d\n", len(activitiesIds))
+	m.logger.Infof("Total activity(s) to migrate: %d\n", len(activitiesIds))
 
 	activitiesConverter := converter.InitActivitiesConverter()
 	activityWriter := fit.InitActivityWriter(m.FitOutputDir)
 
 	total := len(activitiesIds)
 	for index, activityID := range activitiesIds {
-		m.logger.Printf("Migrating activity ID: %s\n", activityID)
+		m.logger.Infof("Migrating activity ID: %s\n", activityID)
 
 		// Fetch activity details with retry logic
 		activityDetails, err := m.nikeApi.GetActivityDetailsWithRetry(activityID, 3)
 		if err != nil {
-			m.logger.Printf("Migration error: %v\n", err)
+			m.logger.Errorf("Migration error: %v\n", err)
 			continue
 		}
 
@@ -60,7 +58,7 @@ func (m *Migrator) MigrateActivities() {
 		var activity types.Activity
 		err = json.Unmarshal(activityDetails, &activity)
 		if err != nil {
-			m.logger.Printf("Error parsing JSON:, %v", err)
+			m.logger.Errorf("Error parsing JSON:, %v", err)
 			continue
 		}
 
@@ -69,7 +67,7 @@ func (m *Migrator) MigrateActivities() {
 		stravaUploader := strava.NewStravaUploader(outputFilename, m.stravaWeb)
 		stravaUploader.UploadActivity(outputFilename)
 		if index < total-1 {
-			fmt.Println("Waiting for 10 seconds before processing the next file...")
+			m.logger.Info("Waiting for 10 seconds before processing the next file...")
 			time.Sleep(10 * time.Second)
 		}
 	}

@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // NikeApi represents the Nike API client
@@ -17,7 +17,7 @@ type NikeApi struct {
 	ActivityListPagination string
 	ActivityDetailsURL     string
 	AccessToken            string
-	logger                 *log.Logger
+	logger                 *logrus.Logger
 }
 
 // NewNikeApi initializes a new NikeApi instance
@@ -26,7 +26,7 @@ func NewNikeApi(accessToken string) *NikeApi {
 		ActivityListURL:    "https://api.nike.com/plus/v3/activities/before_id/v3",
 		ActivityDetailsURL: "https://api.nike.com/sport/v3/me/activity/%s?metrics=ALL",
 		AccessToken:        accessToken,
-		logger:             log.New(os.Stderr, "", log.LstdFlags),
+		logger:             logrus.New(),
 	}
 }
 
@@ -94,7 +94,7 @@ func (n *NikeApi) fetchActivityList(url string) (*ActivitiesListResponse, error)
 }
 
 func (n *NikeApi) GetActivityList() ([]string, error) {
-	n.logger.Println("Getting activities list")
+	n.logger.Info("Getting activities list")
 
 	var activityIDs []string
 	pageNum := 1
@@ -113,7 +113,7 @@ func (n *NikeApi) GetActivityList() ([]string, error) {
 			return nil, fmt.Errorf("error building URL: %w", err)
 		}
 
-		n.logger.Printf("Opening page %d: %s\n", pageNum, baseURL.String())
+		n.logger.Infof("Opening page %d: %s\n", pageNum, baseURL.String())
 
 		// Make the HTTP request
 		response, err := n.fetchActivityList(baseURL.String())
@@ -137,7 +137,7 @@ func (n *NikeApi) GetActivityList() ([]string, error) {
 		pageNum++
 	}
 
-	n.logger.Printf("Successfully extracted %d running activities from %d pages\n", len(activityIDs), pageNum)
+	n.logger.Infof("Successfully extracted %d running activities from %d pages\n", len(activityIDs), pageNum)
 	return activityIDs, nil
 }
 
@@ -146,14 +146,14 @@ func (n *NikeApi) GetActivityDetailsWithRetry(activityID string, maxRetries int)
 	var err error
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		n.logger.Printf("Attempt %d to fetch activity details for %s\n", attempt, activityID)
+		n.logger.Infof("Attempt %d to fetch activity details for %s\n", attempt, activityID)
 
 		body, err = n.GetActivityDetails(activityID)
 		if err == nil {
 			return body, nil
 		}
 
-		n.logger.Printf("Error fetching activity details (attempt %d): %v\n", attempt, err)
+		n.logger.Warnf("Error fetching activity details (attempt %d): %v\n", attempt, err)
 		time.Sleep(10 * time.Second)
 	}
 
@@ -163,7 +163,7 @@ func (n *NikeApi) GetActivityDetailsWithRetry(activityID string, maxRetries int)
 func (n *NikeApi) GetActivityDetails(activityID string) ([]byte, error) {
 	// Construct the request
 	url := fmt.Sprintf(n.ActivityDetailsURL, activityID)
-	n.logger.Printf("New GET Request on: %s\n", url)
+	n.logger.Infof("New GET Request on: %s\n", url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -175,14 +175,14 @@ func (n *NikeApi) GetActivityDetails(activityID string) ([]byte, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Error sending request: %w", err)
+		return nil, fmt.Errorf("error sending request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	// Print the response status
-	n.logger.Printf("Response status: %s\n", resp.Status)
+	n.logger.Infof("Response status: %s\n", resp.Status)
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Error getting activity details: %s", resp.Status)
+		return nil, fmt.Errorf("error getting activity details: %s", resp.Status)
 	}
 
 	// Read the response body
@@ -191,6 +191,6 @@ func (n *NikeApi) GetActivityDetails(activityID string) ([]byte, error) {
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
-	n.logger.Printf("Successfully fetched details for activity ID: %s\n", activityID)
+	n.logger.Infof("Successfully fetched details for activity ID: %s\n", activityID)
 	return body, nil
 }
