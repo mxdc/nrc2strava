@@ -35,7 +35,7 @@ func InitActivitiesParser(activitiesDir, activityFile string) *ActivitiesParser 
 
 // LoadActivities load JSON files into memory
 func (p *ActivitiesParser) LoadActivities() []*types.Activity {
-	p.logger.Infof("Opening file at %s", p.ActivitiesDir)
+	p.logger.Debugf("Opening file at %s", p.ActivitiesDir)
 	var activities []*types.Activity
 
 	if len(p.ActivitiesDir) > 0 {
@@ -46,11 +46,11 @@ func (p *ActivitiesParser) LoadActivities() []*types.Activity {
 }
 
 func (p *ActivitiesParser) LoadActivity() *types.Activity {
-	p.logger.Infof("Opening file at %s", p.activityFile)
+	p.logger.Debugf("Opening file at %s", p.activityFile)
 
 	if len(p.activityFile) > 0 {
 		activity := p.parseActivity(p.activityFile)
-		p.logger.Infof("Activity ID: %s, Status: %s\n", activity.ID, activity.Status)
+		p.logger.Debugf("Activity ID: %s, Status: %s\n", activity.ID, activity.Status)
 		return activity
 	}
 

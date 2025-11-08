@@ -38,5 +38,5 @@ func (m *ActivityMover) MoveFIT(source, filename string) {
 		m.logger.Fatalf("Error moving file: %v", err)
 	}
 
-	m.logger.Infof("Moved file to: %s\n", destination)
+	m.logger.Debugf("Moved file to: %s\n", destination)
 }

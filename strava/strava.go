@@ -32,7 +32,7 @@ func (s *StravaUploader) UploadActivity(fitActivityFilepath string) bool {
 	fitActivity := NewFitActivity(fitActivityFilepath)
 	activityTitle := fitActivity.ExtractActivityTitle()
 	isTreadmill := fitActivity.IsTreadmill()
-	s.logger.Infof("Activity Title: %s | Is Treadmill: %t\n", activityTitle, isTreadmill)
+	s.logger.Debugf("Activity Title: %s | Is Treadmill: %t\n", activityTitle, isTreadmill)
 
 	token, err := s.Client.LoadAuthenticityToken(s.Client.EndpointForm)
 	if err != nil {
@@ -42,7 +42,7 @@ func (s *StravaUploader) UploadActivity(fitActivityFilepath string) bool {
 	// Waiting for 5 seconds before processing the next request...
 	time.Sleep(5 * time.Second)
 
-	s.logger.Info("Authenticity token for file upload found")
+	s.logger.Debug("Authenticity token for file upload found")
 
 	uploadActivity, err := s.Client.UploadActivity(fitActivityFilepath, token)
 	if err != nil {
@@ -50,6 +50,7 @@ func (s *StravaUploader) UploadActivity(fitActivityFilepath string) bool {
 		return false
 	}
 
-	s.logger.Infof("Uploaded activity with progress ID: %d\n", uploadActivity.ID)
+	s.logger.Debugf("Uploaded activity with progress ID: %d\n", uploadActivity.ID)
+	s.logger.Infof("Uploaded activity: %s\n", activityTitle)
 	return true
 }

@@ -42,7 +42,7 @@ func (w *ActivityWriter) WriteFIT(run types.Run) string {
 
 	outputFilename := w.generateFilename(run)
 
-	w.logger.Infof("Writing file at %s", outputFilename)
+	w.logger.Debugf("Writing file at %s", outputFilename)
 
 	f, err := os.OpenFile(outputFilename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
 	if err != nil {
