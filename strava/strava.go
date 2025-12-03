@@ -50,7 +50,6 @@ func (s *StravaUploader) UploadActivity(fitActivityFilepath string) bool {
 		return false
 	}
 
-	s.logger.Debugf("Uploaded activity with progress ID: %d\n", uploadActivity.ID)
-	s.logger.Infof("Uploaded activity: %s\n", activityTitle)
+	s.logger.Debugf("Uploaded activity with progress ID: %d, and name: %s\n", uploadActivity.ID, activityTitle)
 	return true
 }
