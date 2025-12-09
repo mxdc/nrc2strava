@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/mxdc/nrc2strava/utils"
-	"github.com/schollz/progressbar/v3"
 	"github.com/sirupsen/logrus"
 )
 
@@ -99,7 +98,7 @@ func (n *NikeApi) fetchActivityList(url string) (*ActivitiesListResponse, error)
 }
 
 func (n *NikeApi) GetActivityList() ([]string, error) {
-	n.logger.Debug("Collecting activities from Nike API...")
+	n.logger.Info("Collecting activities from Nike API...")
 
 	var activityIDs []string
 	beforeID := ""
@@ -109,16 +108,6 @@ func (n *NikeApi) GetActivityList() ([]string, error) {
 	params.Set("limit", "30")
 	params.Set("types", "run,jogging")
 	params.Set("include_deleted", "false")
-
-	// Create progress bar
-	bar := progressbar.NewOptions(-1,
-		progressbar.OptionSetElapsedTime(false),
-		progressbar.OptionSpinnerType(11),
-		progressbar.OptionClearOnFinish(),
-		progressbar.OptionSetDescription("Collecting activities"),
-		progressbar.OptionShowCount(),
-		progressbar.OptionSetWidth(15),
-	)
 
 	for {
 		// Build the URL with pagination
@@ -142,8 +131,8 @@ func (n *NikeApi) GetActivityList() ([]string, error) {
 			}
 		}
 
-		// Update progress bar
-		bar.Add(len(response.Activities))
+		// Log progress
+		n.logger.Infof("✓ Collected %d activities\n", len(activityIDs))
 
 		// Check for pagination
 		if response.Paging.BeforeID == "" {
@@ -153,8 +142,7 @@ func (n *NikeApi) GetActivityList() ([]string, error) {
 		beforeID = response.Paging.BeforeID
 	}
 
-	bar.Finish()
-	fmt.Printf("✓ Collected %d running activities\n", len(activityIDs))
+	n.logger.Infof("✓ Finished collecting %d running activities\n", len(activityIDs))
 	return activityIDs, nil
 }
 

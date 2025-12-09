@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/mxdc/nrc2strava/utils"
-	"github.com/schollz/progressbar/v3"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,7 +30,7 @@ func NewNikeDownloader(nikeApi *NikeApi, downloadActivitiesDir string) *NikeDown
 }
 
 func (n *NikeDownloader) DownloadActivities() {
-	n.logger.Debug("Downloading activities")
+	n.logger.Info("Downloading activities...")
 
 	// Create the directory if it doesn't exist
 	if _, err := os.Stat(n.downloadActivitiesDir); os.IsNotExist(err) {
@@ -48,14 +47,7 @@ func (n *NikeDownloader) DownloadActivities() {
 	}
 
 	total := len(activities)
-
-	// Create progress bar
-	bar := progressbar.NewOptions(total,
-		progressbar.OptionSetElapsedTime(false),
-		progressbar.OptionSetDescription("→ Downloading activities"),
-		progressbar.OptionShowCount(),
-		progressbar.OptionSetWidth(15),
-	)
+	downloadedCount := 0
 
 	for _, activityID := range activities {
 		n.logger.Debugf("Downloading activity ID: %s\n", activityID)
@@ -63,7 +55,6 @@ func (n *NikeDownloader) DownloadActivities() {
 		activityDetails, err := n.nikeApi.GetActivityDetails(activityID)
 		if err != nil {
 			n.logger.Errorf("Error downloading activity ID %s: %v\n", activityID, err)
-			bar.Add(1)
 			continue
 		}
 
@@ -71,16 +62,15 @@ func (n *NikeDownloader) DownloadActivities() {
 		err = n.SaveActivity(activityDetails, filepath)
 		if err != nil {
 			n.logger.Errorf("Error saving activity ID %s: %v\n", activityID, err)
-			bar.Add(1)
 			continue
 		}
 
-		bar.Add(1)
+		downloadedCount++
+		n.logger.Infof("✓ Downloaded %d/%d activities\n", downloadedCount, total)
 		time.Sleep(200 * time.Millisecond)
 	}
 
-	bar.Finish()
-	fmt.Printf("\n✓ Downloaded %d running activities\n", len(activities))
+	n.logger.Infof("✓ Finished downloading %d activities\n", downloadedCount)
 }
 
 func (n *NikeDownloader) SaveActivity(activityDetails []byte, filepath string) error {

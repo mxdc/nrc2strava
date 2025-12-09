@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -14,7 +13,6 @@ import (
 	"github.com/mxdc/nrc2strava/parser"
 	"github.com/mxdc/nrc2strava/strava"
 	"github.com/mxdc/nrc2strava/utils"
-	"github.com/schollz/progressbar/v3"
 	"github.com/sirupsen/logrus"
 )
 
@@ -120,15 +118,7 @@ func handleUpload(fitActivityDir, fitActivityFile, strava4Session string) {
 			return
 		}
 
-		logger.Debugf("Uploading %d activities...\n", total)
-
-		// Create progress bar
-		bar := progressbar.NewOptions(total,
-			progressbar.OptionSetElapsedTime(false),
-			progressbar.OptionSetDescription("→ Uploading activities"),
-			progressbar.OptionShowCount(),
-			progressbar.OptionSetWidth(15),
-		)
+		logger.Infof("Uploading %d activities...\n", total)
 
 		successCount := 0
 		for _, file := range fitFiles {
@@ -137,7 +127,6 @@ func handleUpload(fitActivityDir, fitActivityFile, strava4Session string) {
 
 			success := stravaUploader.UploadActivity(filePath)
 			if !success {
-				bar.Exit()
 				return
 			}
 
@@ -146,12 +135,11 @@ func handleUpload(fitActivityDir, fitActivityFile, strava4Session string) {
 			fit.InitActivityMover(destinationDir).MoveFIT(filePath, file.Name())
 
 			successCount++
-			bar.Add(1)
-			time.Sleep(3 * time.Second)
+			logger.Infof("✓ Uploaded %d/%d activities\n", successCount, total)
+			time.Sleep(100 * time.Millisecond)
 		}
 
-		bar.Finish()
-		fmt.Printf("✓ Uploaded %d activities\n", successCount)
+		logger.Infof("✓ Finished uploading %d activities\n", successCount)
 	}
 }
 
@@ -179,23 +167,13 @@ func handleConvert(activitiesDir, activityFile, outputDir string) {
 			return
 		}
 
-		logger.Debugf("Converting %d activities...\n", len(nikeActivities))
-
-		// Create progress bar
-		bar := progressbar.NewOptions(len(nikeActivities),
-			progressbar.OptionSetElapsedTime(false),
-			progressbar.OptionSetDescription("→ Converting activities"),
-			progressbar.OptionShowCount(),
-			progressbar.OptionSetWidth(15),
-		)
+		logger.Infof("Converting %d activities...\n", len(nikeActivities))
 
 		for _, nikeActivity := range nikeActivities {
 			run := activitiesConverter.ConvertRun(nikeActivity)
 			activityWriter.WriteFIT(run)
-			bar.Add(1)
 		}
 
-		bar.Finish()
-		fmt.Printf("✓ Converted %d activities\n", len(nikeActivities))
+		logger.Infof("✓ Finished converting %d activities\n", len(nikeActivities))
 	}
 }

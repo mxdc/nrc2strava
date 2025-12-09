@@ -218,6 +218,9 @@ func (web *StravaWeb) UploadActivity(filePath, token string) (*UploadedActivity,
 	// Print the response status
 	web.logger.Debugf("Response status: %s\n", resp.Status)
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusTooManyRequests {
+			return nil, fmt.Errorf("strava upload limit reached. Please resume the upload tomorrow")
+		}
 		return nil, fmt.Errorf("server returned %s", resp.Status)
 	}
 
