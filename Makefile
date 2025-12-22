@@ -8,25 +8,25 @@ build:
 	make build-all
 
 build-linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(BINARY_NAME)-linux $(MAIN_PATH)
-	@echo "✓ Built: $(BINARY_NAME)-linux"
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(BINARY_NAME)-linux-amd64 $(MAIN_PATH)
+	@echo "✓ Built: $(BINARY_NAME)-linux-amd64"
 
 build-mac-intel:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o $(BINARY_NAME)-mac-intel $(MAIN_PATH)
-	@echo "✓ Built: $(BINARY_NAME)-mac-intel"
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o $(BINARY_NAME)-darwin-amd64 $(MAIN_PATH)
+	@echo "✓ Built: $(BINARY_NAME)-darwin-amd64"
 
 build-mac-arm:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o $(BINARY_NAME)-mac-arm $(MAIN_PATH)
-	@echo "✓ Built: $(BINARY_NAME)-mac-arm"
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o $(BINARY_NAME)-darwin-arm64 $(MAIN_PATH)
+	@echo "✓ Built: $(BINARY_NAME)-darwin-arm64"
 
 build-windows:
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o $(BINARY_NAME)-windows.exe $(MAIN_PATH)
-	@echo "✓ Built: $(BINARY_NAME)-windows.exe"
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o $(BINARY_NAME)-windows-amd64.exe $(MAIN_PATH)
+	@echo "✓ Built: $(BINARY_NAME)-windows-amd64.exe"
 
 build-all: build-linux build-mac-intel build-mac-arm build-windows
 
 clean:
-	rm -rf bin/ go.sum
+	rm -rf bin/ go.sum $(BINARY_NAME)-linux-amd64 $(BINARY_NAME)-darwin-amd64 $(BINARY_NAME)-darwin-arm64 $(BINARY_NAME)-windows-amd64.exe
 
 tidy:
 	go mod tidy
