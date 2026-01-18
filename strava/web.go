@@ -7,7 +7,9 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
+	"time"
 
 	"github.com/mxdc/nrc2strava/utils"
 	"github.com/sirupsen/logrus"
@@ -20,8 +22,9 @@ type StravaWeb struct {
 	Strava4Session string
 
 	// Endpoint
-	EndpointForm   string
-	EndpointUpload string
+	EndpointForm       string
+	EndpointUpload     string
+	EndpointActivities string
 
 	// logger
 	logger *logrus.Logger
@@ -37,8 +40,9 @@ func NewStravaWeb(strava4Session string) *StravaWeb {
 		Strava4Session: strava4Session,
 
 		// Endpoint
-		EndpointForm:   "https://www.strava.com/upload/select",
-		EndpointUpload: "https://www.strava.com/upload/files",
+		EndpointForm:       "https://www.strava.com/upload/select",
+		EndpointUpload:     "https://www.strava.com/upload/files",
+		EndpointActivities: "https://www.strava.com/athlete/training_activities",
 
 		// logger
 		logger: logger,
@@ -146,6 +150,7 @@ type Activity struct {
 	ShortUnit         string  `json:"short_unit"`
 	MovingTimeRaw     int64   `json:"moving_time_raw"`
 	ElapsedTimeRaw    int64   `json:"elapsed_time_raw"`
+	ActivityURL       string  `json:"activity_url"`
 }
 
 type ActivitiesResponse struct {
@@ -198,7 +203,7 @@ func (web *StravaWeb) UploadActivity(filePath, token string) (*UploadedActivity,
 	req.Header.Set("referer", web.EndpointForm)
 	req.Header.Set("x-csrf-token", token)
 
-	// Add cookies using req.AddCookie
+	// Add cookies
 	cookies := []http.Cookie{
 		{Name: "_strava4_session", Value: web.Strava4Session},
 	}
@@ -241,4 +246,102 @@ func (web *StravaWeb) UploadActivity(filePath, token string) (*UploadedActivity,
 	}
 
 	return nil, fmt.Errorf("no activity uploaded")
+}
+
+func (s *StravaWeb) GetActivityList() ([]Activity, error) {
+	s.logger.Info("Collecting activities from Strava web...")
+
+	var activities []Activity
+	page := 1
+	const itemsPerPage = 20
+
+	for {
+		// Build the URL with query parameters
+		params := url.Values{}
+		params.Set("page", fmt.Sprintf("%d", page))
+		params.Set("per_page", fmt.Sprintf("%d", itemsPerPage))
+		params.Set("new_activity_only", "false")
+
+		fullURL := s.EndpointActivities + "?" + params.Encode()
+		s.logger.Debugf("Opening page: %s\n", fullURL)
+
+		// Make the HTTP request
+		response, err := s.fetchActivityList(fullURL)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching activity list: %w", err)
+		}
+
+		// Process activities
+		if len(response.Models) == 0 {
+			break
+		}
+
+		for _, activity := range response.Models {
+			activities = append(activities, activity)
+		}
+
+		s.logger.Infof("✓ Collected %d activities (page %d)\n", len(activities), page)
+
+		// Check if we have fewer items than the page size, which means we've reached the end
+		if len(response.Models) < itemsPerPage {
+			break
+		}
+
+		time.Sleep(10 * time.Millisecond)
+		page++
+	}
+
+	s.logger.Infof("✓ Finished collecting %d activities\n", len(activities))
+	return activities, nil
+}
+
+// fetchActivityList makes an HTTP request to fetch the activity list
+func (s *StravaWeb) fetchActivityList(endpoint string) (*ActivitiesResponse, error) {
+	// Create the HTTP request
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
+
+	// Add headers
+	req.Header.Set("accept", "text/javascript, application/javascript, application/ecmascript, application/x-ecmascript")
+	req.Header.Set("accept-language", "en-GB,en-US;q=0.9,en;q=0.8")
+	req.Header.Set("x-requested-with", "XMLHttpRequest")
+
+	// Add cookies
+	cookies := []http.Cookie{
+		{Name: "_strava4_session", Value: s.Strava4Session},
+	}
+
+	for _, cookie := range cookies {
+		req.AddCookie(&cookie)
+	}
+
+	// Send the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error sending request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	s.logger.Debugf("Response status: %s\n", resp.Status)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("server returned %s", resp.Status)
+	}
+
+	// Read and parse the response body
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	// Parse the JSON response
+	var response ActivitiesResponse
+	if err := json.Unmarshal(bodyBytes, &response); err != nil {
+		return nil, fmt.Errorf("error unmarshaling JSON response: %w", err)
+	}
+
+	return &response, nil
 }
