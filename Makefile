@@ -26,7 +26,7 @@ build-windows:
 build-all: build-linux build-mac-intel build-mac-arm build-windows
 
 clean:
-	rm -rf bin/ go.sum $(BINARY_NAME)-linux-amd64 $(BINARY_NAME)-darwin-amd64 $(BINARY_NAME)-darwin-arm64 $(BINARY_NAME)-windows-amd64.exe
+	rm -rf bin/ strava-downloaded/ go.sum $(BINARY_NAME)-linux-amd64 $(BINARY_NAME)-darwin-amd64 $(BINARY_NAME)-darwin-arm64 $(BINARY_NAME)-windows-amd64.exe
 
 tidy:
 	go mod tidy
