@@ -148,6 +148,8 @@ type Activity struct {
 	StartDateLocalRaw int64   `json:"start_date_local_raw"`
 	DistanceRaw       float64 `json:"distance_raw"`
 	ShortUnit         string  `json:"short_unit"`
+	SportType         string  `json:"sport_type"` // e.g., "Run", "Hike", "Ride", "Swim", "Skateboard", etc.
+	Trainer           bool    `json:"trainer"`
 	MovingTimeRaw     int64   `json:"moving_time_raw"`
 	ElapsedTimeRaw    int64   `json:"elapsed_time_raw"`
 	ActivityURL       string  `json:"activity_url"`
