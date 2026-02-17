@@ -2,13 +2,11 @@ package parser
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/mxdc/nrc2strava/types"
 	"github.com/mxdc/nrc2strava/utils"
-	"github.com/schollz/progressbar/v3"
 	"github.com/sirupsen/logrus"
 )
 
@@ -82,15 +80,7 @@ func (p *ActivitiesParser) parseActivities() []*types.Activity {
 		return activities
 	}
 
-	p.logger.Debugf("Processing %d activities...\n", len(jsonFiles))
-
-	// Create progress bar
-	bar := progressbar.NewOptions(len(jsonFiles),
-		progressbar.OptionSetElapsedTime(false),
-		progressbar.OptionSetDescription("→ Parsing activities"),
-		progressbar.OptionShowCount(),
-		progressbar.OptionSetWidth(15),
-	)
+	p.logger.Infof("Parsing %d activities...\n", len(jsonFiles))
 
 	// Loop through all files
 	for _, file := range jsonFiles {
@@ -98,16 +88,14 @@ func (p *ActivitiesParser) parseActivities() []*types.Activity {
 
 		activity := p.parseActivity(filePath)
 		if activity == nil {
-			bar.Add(1)
 			continue
 		}
 
 		activities = append(activities, activity)
-		bar.Add(1)
+		p.logger.Infof("✓ Parsed %d/%d activities\n", len(activities), len(jsonFiles))
 	}
 
-	bar.Finish()
-	fmt.Printf("\n✓ Parsed %d running activities\n", len(activities))
+	p.logger.Infof("✓ Finished parsing %d activities\n", len(activities))
 	return activities
 }
 

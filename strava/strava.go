@@ -1,8 +1,6 @@
 package strava
 
 import (
-	"time"
-
 	"github.com/mxdc/nrc2strava/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -39,9 +37,6 @@ func (s *StravaUploader) UploadActivity(fitActivityFilepath string) bool {
 		s.logger.Errorf("Error loading form requirements: %v\n", err)
 		return false
 	}
-	// Waiting for 5 seconds before processing the next request...
-	time.Sleep(5 * time.Second)
-
 	s.logger.Debug("Authenticity token for file upload found")
 
 	uploadActivity, err := s.Client.UploadActivity(fitActivityFilepath, token)
