@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -40,6 +41,9 @@ var (
 	uploadXpSessionIdentifier = upload.Flag("strava.id", "Strava session identifier").Default("").String()
 	uploadFitActivityFile     = upload.Flag("fit.file", "FIT activity file").Default("").String()
 	uploadFitActivityDir      = upload.Flag("fit.dir", "FIT activities directory").Default("").String()
+
+	// logger
+	logger = log.New(os.Stderr, "", log.LstdFlags)
 )
 
 func init() {
@@ -90,25 +94,25 @@ func handleUpload(fitActivityDir, fitActivityFile, strava4Session, xpSessionIden
 	stravaUploader := strava.NewStravaUploader(fitActivityFile, stravaWeb)
 
 	if len(fitActivityFile) > 0 {
-		fmt.Printf("Processing file: %s\n", fitActivityFile)
+		logger.Printf("Processing file: %s\n", fitActivityFile)
 		stravaUploader.UploadActivity(fitActivityFile)
 	}
 
 	if len(fitActivityDir) > 0 {
 		files, err := os.ReadDir(fitActivityDir)
 		if err != nil {
-			fmt.Printf("Error reading directory: %v\n", err)
+			logger.Printf("Error reading directory: %v\n", err)
 			return
 		}
 
 		total := len(files)
-		fmt.Printf("Total file(s) to upload: %d\n", total)
+		logger.Printf("Total file(s) to upload: %d\n", total)
 
 		for index, file := range files {
 			// Only process .fit files
 			if filepath.Ext(file.Name()) == ".fit" {
 				filePath := filepath.Join(fitActivityDir, file.Name())
-				fmt.Printf("Processing file: %s\n", filePath)
+				logger.Printf("Processing file: %s\n", filePath)
 
 				success := stravaUploader.UploadActivity(filePath)
 				// move the file to a different directory if upload is successful
@@ -144,7 +148,7 @@ func handleConvert(activitiesDir, activityFile, outputDir string) {
 
 	if len(activitiesDir) > 0 {
 		nikeActivities := activitiesParser.LoadActivities()
-		fmt.Printf("converting %d activities\n", len(nikeActivities))
+		logger.Printf("converting %d activities\n", len(nikeActivities))
 
 		for _, nikeActivity := range nikeActivities {
 			run := activitiesConverter.ConvertRun(nikeActivity)
