@@ -1,13 +1,13 @@
 package fit
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/muktihari/fit/encoder"
 	"github.com/muktihari/fit/profile/typedef"
 	"github.com/mxdc/nrc2strava/types"
+	"github.com/sirupsen/logrus"
 )
 
 // ActivityWriter write FIT files
@@ -15,7 +15,7 @@ type ActivityWriter struct {
 	OutputDir string
 
 	// logger
-	logger *log.Logger
+	logger *logrus.Logger
 }
 
 // InitActivityWriter returns an initialized InitActivityWriter
@@ -23,7 +23,7 @@ func InitActivityWriter(outputDir string) *ActivityWriter {
 	var writer ActivityWriter
 
 	writer.OutputDir = outputDir
-	writer.logger = log.New(os.Stderr, "", log.LstdFlags)
+	writer.logger = logrus.New()
 
 	return &writer
 }
@@ -40,7 +40,7 @@ func (w *ActivityWriter) WriteFIT(run types.Run) string {
 
 	outputFilename := w.generateFilename(run)
 
-	w.logger.Printf("writing file at %s", outputFilename)
+	w.logger.Infof("Writing file at %s", outputFilename)
 
 	f, err := os.OpenFile(outputFilename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
 	if err != nil {

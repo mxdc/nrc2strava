@@ -1,9 +1,10 @@
 package fit
 
 import (
-	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/sirupsen/logrus"
 )
 
 // ActivityMover move FIT files
@@ -11,7 +12,7 @@ type ActivityMover struct {
 	destinationDir string
 
 	// logger
-	logger *log.Logger
+	logger *logrus.Logger
 }
 
 // InitActivityMover returns an initialized InitActivityMover
@@ -19,7 +20,7 @@ func InitActivityMover(outputDir string) *ActivityMover {
 	var mover ActivityMover
 
 	mover.destinationDir = outputDir
-	mover.logger = log.New(os.Stderr, "", log.LstdFlags)
+	mover.logger = logrus.New()
 
 	return &mover
 }
@@ -35,5 +36,5 @@ func (m *ActivityMover) MoveFIT(source, filename string) {
 		m.logger.Fatalf("Error moving file: %v", err)
 	}
 
-	m.logger.Printf("Moved file to: %s\n", destination)
+	m.logger.Infof("Moved file to: %s\n", destination)
 }

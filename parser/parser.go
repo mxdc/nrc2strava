@@ -2,12 +2,11 @@ package parser
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/mxdc/nrc2strava/types"
+	"github.com/sirupsen/logrus"
 )
 
 // NikeActivitiesParser loads the activities files and parse them
@@ -16,7 +15,7 @@ type ActivitiesParser struct {
 	activityFile  string
 
 	// logger
-	logger *log.Logger
+	logger *logrus.Logger
 }
 
 // InitActivitiesParser returns an initialized ActivitiesParser
@@ -25,14 +24,14 @@ func InitActivitiesParser(activitiesDir, activityFile string) *ActivitiesParser 
 
 	parser.ActivitiesDir = activitiesDir
 	parser.activityFile = activityFile
-	parser.logger = log.New(os.Stderr, "", log.LstdFlags)
+	parser.logger = logrus.New()
 
 	return &parser
 }
 
 // LoadActivities load JSON files into memory
 func (p *ActivitiesParser) LoadActivities() []*types.Activity {
-	p.logger.Printf("opening file at %s", p.ActivitiesDir)
+	p.logger.Infof("Opening file at %s", p.ActivitiesDir)
 	var activities []*types.Activity
 
 	if len(p.ActivitiesDir) > 0 {
@@ -43,11 +42,11 @@ func (p *ActivitiesParser) LoadActivities() []*types.Activity {
 }
 
 func (p *ActivitiesParser) LoadActivity() *types.Activity {
-	p.logger.Printf("opening file at %s", p.activityFile)
+	p.logger.Infof("Opening file at %s", p.activityFile)
 
 	if len(p.activityFile) > 0 {
 		activity := p.parseActivity(p.activityFile)
-		fmt.Printf("Activity ID: %s, Status: %s\n", activity.ID, activity.Status)
+		p.logger.Infof("Activity ID: %s, Status: %s\n", activity.ID, activity.Status)
 		return activity
 	}
 
@@ -60,7 +59,7 @@ func (p *ActivitiesParser) parseActivities() []*types.Activity {
 	// Read all files in the folder
 	files, err := os.ReadDir(p.ActivitiesDir)
 	if err != nil {
-		p.logger.Printf("Error reading directory: %s", p.ActivitiesDir)
+		p.logger.Errorf("Error reading directory: %s", p.ActivitiesDir)
 		return activities
 	}
 
@@ -83,12 +82,12 @@ func (p *ActivitiesParser) parseActivities() []*types.Activity {
 }
 
 func (p *ActivitiesParser) parseActivity(filePath string) *types.Activity {
-	p.logger.Printf("Processing file:, %s", filePath)
+	p.logger.Infof("Processing file:, %s", filePath)
 
 	// Open and read the file
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		p.logger.Printf("Error reading file:, %v", err)
+		p.logger.Errorf("Error reading file:, %v", err)
 		return nil
 	}
 
@@ -96,7 +95,7 @@ func (p *ActivitiesParser) parseActivity(filePath string) *types.Activity {
 	var activity types.Activity
 	err = json.Unmarshal(data, &activity)
 	if err != nil {
-		p.logger.Printf("Error parsing JSON:, %v", err)
+		p.logger.Errorf("Error parsing JSON:, %v", err)
 		return nil
 	}
 
