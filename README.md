@@ -63,6 +63,7 @@ $ export XPSESSIONIDENTIFIER='<xp_session_identifier>'
 
 Compile the source code:
 ```bash
+$ go mod tidy
 $ go build -o bin/nrc2strava cmd/main.go
 ```
 
