@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/mxdc/nrc2strava/utils"
+	"github.com/schollz/progressbar/v3"
 	"github.com/sirupsen/logrus"
 )
 
@@ -98,10 +99,9 @@ func (n *NikeApi) fetchActivityList(url string) (*ActivitiesListResponse, error)
 }
 
 func (n *NikeApi) GetActivityList() ([]string, error) {
-	n.logger.Info("Getting activities list")
+	n.logger.Debug("Collecting activities from Nike API...")
 
 	var activityIDs []string
-	pageNum := 1
 	beforeID := ""
 
 	// Query parameters
@@ -110,6 +110,16 @@ func (n *NikeApi) GetActivityList() ([]string, error) {
 	params.Set("types", "run,jogging")
 	params.Set("include_deleted", "false")
 
+	// Create progress bar
+	bar := progressbar.NewOptions(-1,
+		progressbar.OptionSetElapsedTime(false),
+		progressbar.OptionSpinnerType(11),
+		progressbar.OptionClearOnFinish(),
+		progressbar.OptionSetDescription("Collecting activities"),
+		progressbar.OptionShowCount(),
+		progressbar.OptionSetWidth(15),
+	)
+
 	for {
 		// Build the URL with pagination
 		baseURL, err := n.buildActivityListURL(beforeID, params)
@@ -117,7 +127,7 @@ func (n *NikeApi) GetActivityList() ([]string, error) {
 			return nil, fmt.Errorf("error building URL: %w", err)
 		}
 
-		n.logger.Infof("Opening page %d: %s\n", pageNum, baseURL.String())
+		n.logger.Debugf("Opening page: %s\n", baseURL.String())
 
 		// Make the HTTP request
 		response, err := n.fetchActivityList(baseURL.String())
@@ -132,16 +142,19 @@ func (n *NikeApi) GetActivityList() ([]string, error) {
 			}
 		}
 
+		// Update progress bar
+		bar.Add(len(response.Activities))
+
 		// Check for pagination
 		if response.Paging.BeforeID == "" {
 			break
 		}
 
 		beforeID = response.Paging.BeforeID
-		pageNum++
 	}
 
-	n.logger.Infof("Successfully extracted %d running activities from %d pages\n", len(activityIDs), pageNum)
+	bar.Finish()
+	fmt.Printf("✓ Collected %d running activities\n", len(activityIDs))
 	return activityIDs, nil
 }
 
