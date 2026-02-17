@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/mxdc/nrc2strava/parser"
 	"github.com/mxdc/nrc2strava/strava"
 	"github.com/mxdc/nrc2strava/utils"
+	"github.com/schollz/progressbar/v3"
 	"github.com/sirupsen/logrus"
 )
 
@@ -104,30 +106,52 @@ func handleUpload(fitActivityDir, fitActivityFile, strava4Session string) {
 			return
 		}
 
-		total := len(files)
-		logger.Infof("Total file(s) to upload: %d\n", total)
-
-		for index, file := range files {
-			// Only process .fit files
+		// Count .fit files
+		fitFiles := []os.DirEntry{}
+		for _, file := range files {
 			if filepath.Ext(file.Name()) == ".fit" {
-				filePath := filepath.Join(fitActivityDir, file.Name())
-				logger.Infof("Processing file: %s\n", filePath)
-
-				success := stravaUploader.UploadActivity(filePath)
-				if !success {
-					return
-				}
-
-				// move the file to a different directory if upload is successful
-				destinationDir := filepath.Join(fitActivityDir, "uploaded")
-				fit.InitActivityMover(destinationDir).MoveFIT(filePath, file.Name())
-
-				if index < total-1 {
-					logger.Debug("Waiting for 10 seconds before processing the next file...")
-					time.Sleep(10 * time.Second)
-				}
+				fitFiles = append(fitFiles, file)
 			}
 		}
+
+		total := len(fitFiles)
+		if total == 0 {
+			logger.Error("No .fit files to upload")
+			return
+		}
+
+		logger.Debugf("Uploading %d activities...\n", total)
+
+		// Create progress bar
+		bar := progressbar.NewOptions(total,
+			progressbar.OptionSetElapsedTime(false),
+			progressbar.OptionSetDescription("→ Uploading activities"),
+			progressbar.OptionShowCount(),
+			progressbar.OptionSetWidth(15),
+		)
+
+		successCount := 0
+		for _, file := range fitFiles {
+			filePath := filepath.Join(fitActivityDir, file.Name())
+			logger.Debugf("Uploading file: %s\n", filePath)
+
+			success := stravaUploader.UploadActivity(filePath)
+			if !success {
+				bar.Exit()
+				return
+			}
+
+			// move the file to a different directory if upload is successful
+			destinationDir := filepath.Join(fitActivityDir, "uploaded")
+			fit.InitActivityMover(destinationDir).MoveFIT(filePath, file.Name())
+
+			successCount++
+			bar.Add(1)
+			time.Sleep(3 * time.Second)
+		}
+
+		bar.Finish()
+		fmt.Printf("✓ Uploaded %d activities\n", successCount)
 	}
 }
 
@@ -149,11 +173,29 @@ func handleConvert(activitiesDir, activityFile, outputDir string) {
 
 	if len(activitiesDir) > 0 {
 		nikeActivities := activitiesParser.LoadActivities()
-		logger.Infof("Converting %d activities\n", len(nikeActivities))
+
+		if len(nikeActivities) == 0 {
+			logger.Error("No activities to convert")
+			return
+		}
+
+		logger.Debugf("Converting %d activities...\n", len(nikeActivities))
+
+		// Create progress bar
+		bar := progressbar.NewOptions(len(nikeActivities),
+			progressbar.OptionSetElapsedTime(false),
+			progressbar.OptionSetDescription("→ Converting activities"),
+			progressbar.OptionShowCount(),
+			progressbar.OptionSetWidth(15),
+		)
 
 		for _, nikeActivity := range nikeActivities {
 			run := activitiesConverter.ConvertRun(nikeActivity)
 			activityWriter.WriteFIT(run)
+			bar.Add(1)
 		}
+
+		bar.Finish()
+		fmt.Printf("✓ Converted %d activities\n", len(nikeActivities))
 	}
 }

@@ -2,11 +2,13 @@ package parser
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/mxdc/nrc2strava/types"
 	"github.com/mxdc/nrc2strava/utils"
+	"github.com/schollz/progressbar/v3"
 	"github.com/sirupsen/logrus"
 )
 
@@ -67,31 +69,55 @@ func (p *ActivitiesParser) parseActivities() []*types.Activity {
 		return activities
 	}
 
-	// Loop through all files
+	// Count .json files
+	jsonFiles := []os.DirEntry{}
 	for _, file := range files {
-		// Only process .json files
 		if filepath.Ext(file.Name()) == ".json" {
-			filePath := filepath.Join(p.ActivitiesDir, file.Name())
-
-			activity := p.parseActivity(filePath)
-			if activity == nil {
-				continue
-			}
-
-			activities = append(activities, activity)
+			jsonFiles = append(jsonFiles, file)
 		}
 	}
 
+	if len(jsonFiles) == 0 {
+		p.logger.Error("No JSON files to process")
+		return activities
+	}
+
+	p.logger.Debugf("Processing %d activities...\n", len(jsonFiles))
+
+	// Create progress bar
+	bar := progressbar.NewOptions(len(jsonFiles),
+		progressbar.OptionSetElapsedTime(false),
+		progressbar.OptionSetDescription("→ Parsing activities"),
+		progressbar.OptionShowCount(),
+		progressbar.OptionSetWidth(15),
+	)
+
+	// Loop through all files
+	for _, file := range jsonFiles {
+		filePath := filepath.Join(p.ActivitiesDir, file.Name())
+
+		activity := p.parseActivity(filePath)
+		if activity == nil {
+			bar.Add(1)
+			continue
+		}
+
+		activities = append(activities, activity)
+		bar.Add(1)
+	}
+
+	bar.Finish()
+	fmt.Printf("\n✓ Parsed %d running activities\n", len(activities))
 	return activities
 }
 
 func (p *ActivitiesParser) parseActivity(filePath string) *types.Activity {
-	p.logger.Infof("Processing file:, %s", filePath)
+	p.logger.Debugf("Processing file: %s", filePath)
 
 	// Open and read the file
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		p.logger.Errorf("Error reading file:, %v", err)
+		p.logger.Errorf("Error reading file: %v", err)
 		return nil
 	}
 
@@ -99,7 +125,7 @@ func (p *ActivitiesParser) parseActivity(filePath string) *types.Activity {
 	var activity types.Activity
 	err = json.Unmarshal(data, &activity)
 	if err != nil {
-		p.logger.Errorf("Error parsing JSON:, %v", err)
+		p.logger.Errorf("Error parsing JSON: %v", err)
 		return nil
 	}
 

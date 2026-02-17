@@ -80,8 +80,7 @@ func (n *NikeDownloader) DownloadActivities() {
 	}
 
 	bar.Finish()
-	fmt.Println()
-	fmt.Printf("✓ Downloaded %d running activities\n", len(activities))
+	fmt.Printf("\n✓ Downloaded %d running activities\n", len(activities))
 }
 
 func (n *NikeDownloader) SaveActivity(activityDetails []byte, filepath string) error {
