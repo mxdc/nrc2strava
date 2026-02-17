@@ -42,7 +42,7 @@ func (s *StravaUploader) UploadActivity(fitActivityFilepath string) bool {
 
 	uploadActivity, err := s.Client.UploadActivity(fitActivityFilepath, token)
 	if err != nil {
-		s.logger.Printf("Error uploading activity: %v\n", err)
+		s.logger.Printf("%v\n", err)
 		return false
 	}
 
