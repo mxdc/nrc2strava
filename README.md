@@ -74,7 +74,7 @@ $ go build -o bin/nrc2strava cmd/main.go
 
 Once you have the token, use the following command to download activities:
 ```bash
-$ go run ./cmd/main.go download --activities.dir='./downloaded' --nrc.token="$NIKE_TOKEN"
+$ bin/nrc2strava download --activities.dir='./downloaded' --nrc.token="$NIKE_TOKEN"
 ```
 
 This will save all activities as JSON files in the `./downloaded` directory.
@@ -84,13 +84,13 @@ This will save all activities as JSON files in the `./downloaded` directory.
 
 Convert multiple JSON activities to FIT files:
 ```bash
-$ go run ./cmd/main.go convert --activities.dir './downloaded' --fit.dir './output'
+$ bin/nrc2strava convert --activities.dir './downloaded' --fit.dir './output'
 ```
 
 Convert a single JSON activity to a FIT file:
 ```bash
-$ go run ./cmd/main.go convert --activity.file './downloaded/run-01.json'
-$ go run ./cmd/main.go convert --activity.file './downloaded/run-02.json'
+$ bin/nrc2strava convert --activity.file './downloaded/run-01.json'
+$ bin/nrc2strava convert --activity.file './downloaded/run-02.json'
 ```
 
 The FIT files will be saved in the `./output` directory.
@@ -100,26 +100,25 @@ The FIT files will be saved in the `./output` directory.
 
 Upload multiple FIT activities to Strava:
 ```bash
-$ go run ./cmd/main.go upload --fit.dir='./output' \
-                              --strava.token="$STRAVA4SESSION" \
-                              --strava.id="$XPSESSIONIDENTIFIER"
+$ bin/nrc2strava upload --fit.dir='./output' \
+                        --strava.token="$STRAVA4SESSION" \
+                        --strava.id="$XPSESSIONIDENTIFIER"
 ```
 For each successful upload, the `.fit` file is moved into an `uploaded` subfolder.
 
 Upload a single FIT activity to Strava:
 ```bash
-$ go run ./cmd/main.go upload --fit.file='./output/run-01.fit' \
-                              --strava.token="$STRAVA4SESSION" \
-                              --strava.id="$XPSESSIONIDENTIFIER"
+$ bin/nrc2strava upload --fit.file='./output/run-01.fit' \
+                        --strava.token="$STRAVA4SESSION" \
+                        --strava.id="$XPSESSIONIDENTIFIER"
 ```
 
 ### 4. Migrate Activities from NRC to Strava
 
 To perform all the steps (download, convert, and upload) in one command:
 ```bash
-$ go run ./cmd/main.go migrate \
-    --fit.dir './tmp' \
-    --nrc.token="$NIKE_TOKEN" \
-    --strava.token="$STRAVA4SESSION" \
-    --strava.id="$XPSESSIONIDENTIFIER"
+$ bin/nrc2strava migrate --fit.dir './tmp' \
+                         --nrc.token="$NIKE_TOKEN" \
+                         --strava.token="$STRAVA4SESSION" \
+                         --strava.id="$XPSESSIONIDENTIFIER"
 ```
