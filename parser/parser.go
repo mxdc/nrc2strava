@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/mxdc/nrc2strava/types"
+	"github.com/mxdc/nrc2strava/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,9 +23,12 @@ type ActivitiesParser struct {
 func InitActivitiesParser(activitiesDir, activityFile string) *ActivitiesParser {
 	var parser ActivitiesParser
 
+	logger := logrus.New()
+	logger.SetFormatter(utils.LogFormat)
+
 	parser.ActivitiesDir = activitiesDir
 	parser.activityFile = activityFile
-	parser.logger = logrus.New()
+	parser.logger = logger
 
 	return &parser
 }

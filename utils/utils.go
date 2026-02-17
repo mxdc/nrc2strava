@@ -2,6 +2,12 @@ package utils
 
 import (
 	"time"
+
+	"github.com/sirupsen/logrus"
+)
+
+var (
+	LogFormat = &logrus.TextFormatter{TimestampFormat: "2006-01-02 15:04:05", FullTimestamp: true}
 )
 
 func ParseTimeInMs(epochMs int64) time.Time {

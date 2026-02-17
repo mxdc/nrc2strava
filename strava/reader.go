@@ -7,6 +7,7 @@ import (
 	"github.com/muktihari/fit/profile/mesgdef"
 	"github.com/muktihari/fit/profile/typedef"
 	"github.com/muktihari/fit/proto"
+	"github.com/mxdc/nrc2strava/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,6 +21,7 @@ type FitActivity struct {
 // NewFitActivity initializes a new FitActivity instance
 func NewFitActivity(fitActivityFilepath string) *FitActivity {
 	logger := logrus.New()
+	logger.SetFormatter(utils.LogFormat)
 
 	// Open the .fit file
 	file, err := os.Open(fitActivityFilepath)

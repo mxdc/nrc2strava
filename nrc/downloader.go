@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/mxdc/nrc2strava/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,10 +19,13 @@ type NikeDownloader struct {
 
 // NewNikeDownloader initializes a new NewNikeDownloader instance
 func NewNikeDownloader(nikeApi *NikeApi, downloadActivitiesDir string) *NikeDownloader {
+	logger := logrus.New()
+	logger.SetFormatter(utils.LogFormat)
+
 	return &NikeDownloader{
 		downloadActivitiesDir: downloadActivitiesDir,
 		nikeApi:               nikeApi,
-		logger:                logrus.New(),
+		logger:                logger,
 	}
 }
 

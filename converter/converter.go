@@ -23,6 +23,7 @@ func InitActivitiesConverter() *ActivitiesConverter {
 	var parser ActivitiesConverter
 
 	parser.logger = logrus.New()
+	parser.logger.SetFormatter(utils.LogFormat)
 
 	return &parser
 }

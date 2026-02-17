@@ -71,6 +71,8 @@ func InitMetricsConverter(
 	var parser MetricsConverter
 
 	parser.logger = logrus.New()
+	parser.logger.SetFormatter(utils.LogFormat)
+
 	parser.StartEpochMs = StartEpochMs
 	parser.EndEpochMs = EndEpochMs
 	parser.Indoor = isIndoor(Tags)

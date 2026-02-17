@@ -7,6 +7,7 @@ import (
 	"github.com/muktihari/fit/encoder"
 	"github.com/muktihari/fit/profile/typedef"
 	"github.com/mxdc/nrc2strava/types"
+	"github.com/mxdc/nrc2strava/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,6 +25,7 @@ func InitActivityWriter(outputDir string) *ActivityWriter {
 
 	writer.OutputDir = outputDir
 	writer.logger = logrus.New()
+	writer.logger.SetFormatter(utils.LogFormat)
 
 	return &writer
 }

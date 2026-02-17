@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/mxdc/nrc2strava/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 )
@@ -30,6 +31,7 @@ type StravaWeb struct {
 // NewStravaWeb initializes a new StravaWeb instance
 func NewStravaWeb(strava4Session, xpSessionIdentifier string) *StravaWeb {
 	logger := logrus.New()
+	logger.SetFormatter(utils.LogFormat)
 
 	return &StravaWeb{
 		// Cookie Data | Domain: www.strava.com
@@ -220,7 +222,7 @@ func (web *StravaWeb) UploadActivity(filePath, token string) (*UploadedActivity,
 	// Print the response status
 	web.logger.Infof("Response status: %s\n", resp.Status)
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error uploading activity: %s", resp.Status)
+		return nil, fmt.Errorf("server returned %s", resp.Status)
 	}
 
 	// Read and parse the response body
