@@ -106,9 +106,6 @@ func InitMetricsConverter(
 		if summary.Metric == "descent" {
 			parser.DescentSummary = summary
 		}
-		if summary.Metric == "descent" {
-			parser.DescentSummary = summary
-		}
 	}
 
 	for _, metric := range Metrics {
@@ -278,7 +275,12 @@ func convertStepsToCadence(stepsMetric types.Metric) types.Metric {
 // fillCadenceFromSteps fills cadence for each record
 // Interpolation is not really needed here
 func fillCadenceFromSteps(records []*mesgdef.Record, stepsMetric types.Metric) {
-	if stepsMetric.Type != "steps" {
+	if stepsMetric.Type != "steps" || len(stepsMetric.Values) == 0 {
+		return
+	}
+
+	// Skip if it's a default empty value (only one value with value 0)
+	if len(stepsMetric.Values) == 1 && stepsMetric.Values[0].Value == 0 {
 		return
 	}
 
@@ -524,7 +526,7 @@ func (m *MetricsConverter) ParseSession(records []*mesgdef.Record) *mesgdef.Sess
 		session.SetAvgSpeedScaled(m.SpeedSummary.Value / 3.6)
 	}
 
-	if m.StepsSummary.Metric == "steps" {
+	if m.StepsSummary.Metric == "steps" && m.StepsSummary.Value > 0 {
 		session.SetTotalCycles(uint32(m.StepsSummary.Value / 2))
 
 		// Compute cadence based on total steps and active duration

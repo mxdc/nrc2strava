@@ -1,6 +1,7 @@
 package strava
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/muktihari/fit/decoder"
 	"github.com/mxdc/nrc2strava/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -86,6 +88,23 @@ func (s *StravaDownloader) DownloadActivities() {
 			continue
 		}
 
+		// Read the response body
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			s.logger.Errorf("Error reading response body for activity %d: %v\n", activity.ID, err)
+			continue
+		}
+
+		// Create a new FIT decoder
+		d := decoder.New(bytes.NewReader(bodyBytes))
+
+		// Decode the FIT file
+		_, err = d.Decode()
+		if err != nil {
+			s.logger.Errorf("Failed to decode FIT response: %v", err)
+			continue
+		}
+
 		// Format the filename: 2025-01-30_<ID>_<activity name>.fit
 		activityDate := time.Unix(activity.StartDateLocalRaw, 0).Format("2006-01-02")
 		sanitizedName := sanitizeFilename(activity.Name)
@@ -93,14 +112,7 @@ func (s *StravaDownloader) DownloadActivities() {
 
 		// Save the file
 		filePath := filepath.Join(s.downloadActivitiesDir, finalFilename)
-		file, err := os.Create(filePath)
-		if err != nil {
-			s.logger.Errorf("Error creating file for activity %d: %v\n", activity.ID, err)
-			continue
-		}
-
-		_, err = io.Copy(file, resp.Body)
-		file.Close()
+		err = os.WriteFile(filePath, bodyBytes, 0644)
 		if err != nil {
 			s.logger.Errorf("Error saving activity %d: %v\n", activity.ID, err)
 			continue
