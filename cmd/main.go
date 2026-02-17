@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
 
 	kingpin "github.com/alecthomas/kingpin/v2"
 	"github.com/mxdc/nrc2strava/converter"
+	"github.com/mxdc/nrc2strava/fit"
 	"github.com/mxdc/nrc2strava/migrator"
 	"github.com/mxdc/nrc2strava/nrc"
 	"github.com/mxdc/nrc2strava/parser"
 	"github.com/mxdc/nrc2strava/strava"
-	"github.com/mxdc/nrc2strava/writer"
 )
 
 var (
@@ -40,6 +41,9 @@ var (
 	uploadXpSessionIdentifier = upload.Flag("strava.id", "Strava session identifier").Default("").String()
 	uploadFitActivityFile     = upload.Flag("fit.file", "FIT activity file").Default("").String()
 	uploadFitActivityDir      = upload.Flag("fit.dir", "FIT activities directory").Default("").String()
+
+	// logger
+	logger = log.New(os.Stderr, "", log.LstdFlags)
 )
 
 func init() {
@@ -90,27 +94,33 @@ func handleUpload(fitActivityDir, fitActivityFile, strava4Session, xpSessionIden
 	stravaUploader := strava.NewStravaUploader(fitActivityFile, stravaWeb)
 
 	if len(fitActivityFile) > 0 {
-		fmt.Printf("Processing file: %s\n", fitActivityFile)
+		logger.Printf("Processing file: %s\n", fitActivityFile)
 		stravaUploader.UploadActivity(fitActivityFile)
 	}
 
 	if len(fitActivityDir) > 0 {
 		files, err := os.ReadDir(fitActivityDir)
 		if err != nil {
-			fmt.Printf("Error reading directory: %v\n", err)
+			logger.Printf("Error reading directory: %v\n", err)
 			return
 		}
 
 		total := len(files)
-		fmt.Printf("Total file(s) to upload: %d\n", total)
+		logger.Printf("Total file(s) to upload: %d\n", total)
 
 		for index, file := range files {
 			// Only process .fit files
 			if filepath.Ext(file.Name()) == ".fit" {
 				filePath := filepath.Join(fitActivityDir, file.Name())
-				fmt.Printf("Processing file: %s\n", filePath)
+				logger.Printf("Processing file: %s\n", filePath)
 
-				stravaUploader.UploadActivity(filePath)
+				success := stravaUploader.UploadActivity(filePath)
+				// move the file to a different directory if upload is successful
+				if success {
+					destinationDir := filepath.Join(fitActivityDir, "uploaded")
+					fit.InitActivityMover(destinationDir).MoveFIT(filePath, file.Name())
+				}
+
 				if index < total-1 {
 					fmt.Println("Waiting for 10 seconds before processing the next file...")
 					time.Sleep(10 * time.Second)
@@ -128,7 +138,7 @@ func handleConvert(activitiesDir, activityFile, outputDir string) {
 
 	activitiesParser := parser.InitActivitiesParser(activitiesDir, activityFile)
 	activitiesConverter := converter.InitActivitiesConverter()
-	activityWriter := writer.InitActivityWriter(outputDir)
+	activityWriter := fit.InitActivityWriter(outputDir)
 
 	if len(activityFile) > 0 {
 		nikeActivity := activitiesParser.LoadActivity()
@@ -138,7 +148,7 @@ func handleConvert(activitiesDir, activityFile, outputDir string) {
 
 	if len(activitiesDir) > 0 {
 		nikeActivities := activitiesParser.LoadActivities()
-		fmt.Printf("converting %d activities\n", len(nikeActivities))
+		logger.Printf("converting %d activities\n", len(nikeActivities))
 
 		for _, nikeActivity := range nikeActivities {
 			run := activitiesConverter.ConvertRun(nikeActivity)

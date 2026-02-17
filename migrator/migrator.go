@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/mxdc/nrc2strava/converter"
+	"github.com/mxdc/nrc2strava/fit"
 	"github.com/mxdc/nrc2strava/nrc"
 	"github.com/mxdc/nrc2strava/strava"
 	"github.com/mxdc/nrc2strava/types"
-	"github.com/mxdc/nrc2strava/writer"
 )
 
 // Migrator represents the Migrator client
@@ -43,7 +43,7 @@ func (m *Migrator) MigrateActivities() {
 	m.logger.Printf("Total activity(s) to migrate: %d\n", len(activitiesIds))
 
 	activitiesConverter := converter.InitActivitiesConverter()
-	activityWriter := writer.InitActivityWriter(m.FitOutputDir)
+	activityWriter := fit.InitActivityWriter(m.FitOutputDir)
 
 	total := len(activitiesIds)
 	for index, activityID := range activitiesIds {
