@@ -28,6 +28,11 @@ var (
 	downloadActivitiesDir = download.Flag("activities.dir", "Downloaded NRC activities directory").Default("./downloaded").String()
 	downloadToken         = download.Flag("nrc.token", "NRC access token").Default("").String()
 
+	// strava-download
+	stravaDownload              = kingpin.Command("strava-download", "Download Strava activities.")
+	stravaDownloadActivitiesDir = stravaDownload.Flag("activities.dir", "Downloaded Strava activities directory").Default("./strava-downloaded").String()
+	stravaDownloadToken         = stravaDownload.Flag("strava.token", "Strava session token").Default("").String()
+
 	// convert
 	convert          = kingpin.Command("convert", "Convert NRC activities into FIT activities.")
 	nrcActivitiesDir = convert.Flag("activities.dir", "Downloaded NRC activities directory").Default("").String()
@@ -60,6 +65,8 @@ func main() {
 		handleConvert(*nrcActivitiesDir, *nrcActivityFile, *outputDir)
 	case upload.FullCommand():
 		handleUpload(*uploadFitActivityDir, *uploadFitActivityFile, *uploadStrava4Session)
+	case stravaDownload.FullCommand():
+		handleStravaDownload(*stravaDownloadActivitiesDir, *stravaDownloadToken)
 	default:
 		kingpin.Usage()
 	}
@@ -81,6 +88,17 @@ func handleDownload(downloadActivitiesDir, accessToken string) {
 	nikeApi := nrc.NewNikeApi(accessToken)
 	nikeDownloader := nrc.NewNikeDownloader(nikeApi, downloadActivitiesDir)
 	nikeDownloader.DownloadActivities()
+}
+
+func handleStravaDownload(stravaDownloadActivitiesDir, stravaDownloadToken string) {
+	if len(stravaDownloadActivitiesDir) == 0 {
+		logger.Error("Please provide a directory to save the downloaded activities.")
+		return
+	}
+
+	stravaWeb := strava.NewStravaWeb(stravaDownloadToken)
+	stravaDownloader := strava.NewStravaDownloader(stravaWeb, stravaDownloadActivitiesDir)
+	stravaDownloader.DownloadActivities()
 }
 
 func handleUpload(fitActivityDir, fitActivityFile, strava4Session string) {
