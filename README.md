@@ -19,6 +19,9 @@ To execute all the steps in a single operation:
 
 1. **Migrate**: Perform all the above steps in a single command.
 
+> If you have more than **600+ run activities** like me, the Strava API will likely rate limit the upload rate. To avoid issues, it is recommended to perform each step individually and keep a local copy of the `.fit` files. This ensures you have a backup of your data and can retry uploads if necessary.
+
+
 ## Requirements
 
 - **Go**: Ensure you have Go installed on your system.
@@ -78,15 +81,15 @@ This will save all activities as JSON files in the `./downloaded` directory.
 
 ### 2. Convert JSON Activities to FIT Format
 
+Convert multiple JSON activities to FIT files:
+```bash
+$ go run ./cmd/main.go convert --activities.dir './downloaded' --fit.dir './output'
+```
+
 Convert a single JSON activity to a FIT file:
 ```bash
 $ go run ./cmd/main.go convert --activity.file './downloaded/run-01.json'
 $ go run ./cmd/main.go convert --activity.file './downloaded/run-02.json'
-```
-
-Convert multiple JSON activities to FIT files:
-```bash
-$ go run ./cmd/main.go convert --activities.dir './downloaded' --fit.dir './output'
 ```
 
 The FIT files will be saved in the `./output` directory.
@@ -94,16 +97,20 @@ The FIT files will be saved in the `./output` directory.
 
 ### 3. Upload FIT Activities to Strava
 
-Upload a single FIT activity to Strava:
-```bash
-$ go run ./cmd/main.go upload --fit.file='./output/run-01.fit' --strava.token="$STRAVA4SESSION" --strava.id="$XPSESSIONIDENTIFIER"
-```
-
 Upload multiple FIT activities to Strava:
 ```bash
-$ go run ./cmd/main.go upload --fit.dir './output' --strava.token="$STRAVA4SESSION" --strava.id="$XPSESSIONIDENTIFIER"
+$ go run ./cmd/main.go upload --fit.dir='./output' \
+                              --strava.token="$STRAVA4SESSION" \
+                              --strava.id="$XPSESSIONIDENTIFIER"
 ```
+For each successful upload, the `.fit` file is moved into an `uploaded` subfolder.
 
+Upload a single FIT activity to Strava:
+```bash
+$ go run ./cmd/main.go upload --fit.file='./output/run-01.fit' \
+                              --strava.token="$STRAVA4SESSION" \
+                              --strava.id="$XPSESSIONIDENTIFIER"
+```
 
 ### 4. Migrate Activities from NRC to Strava
 

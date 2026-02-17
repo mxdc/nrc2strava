@@ -24,7 +24,7 @@ func NewStravaUploader(fitActivityFile string, stravaWeb *StravaWeb) *StravaUplo
 	}
 }
 
-func (s *StravaUploader) UploadActivity(fitActivityFilepath string) {
+func (s *StravaUploader) UploadActivity(fitActivityFilepath string) bool {
 	fitActivity := NewFitActivity(fitActivityFilepath)
 	activityTitle := fitActivity.ExtractActivityTitle()
 	isTreadmill := fitActivity.IsTreadmill()
@@ -33,7 +33,7 @@ func (s *StravaUploader) UploadActivity(fitActivityFilepath string) {
 	token, err := s.Client.LoadAuthenticityToken(s.Client.EndpointForm)
 	if err != nil {
 		s.logger.Printf("Error loading form requirements: %v\n", err)
-		return
+		return false
 	}
 	// Waiting for 5 seconds before processing the next request...
 	time.Sleep(5 * time.Second)
@@ -43,7 +43,9 @@ func (s *StravaUploader) UploadActivity(fitActivityFilepath string) {
 	uploadActivity, err := s.Client.UploadActivity(fitActivityFilepath, token)
 	if err != nil {
 		s.logger.Printf("Error uploading activity: %v\n", err)
-		return
+		return false
 	}
+
 	s.logger.Printf("Uploaded activity with progress ID: %d\n", uploadActivity.ID)
+	return true
 }
