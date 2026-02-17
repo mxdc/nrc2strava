@@ -150,7 +150,7 @@ func (n *NikeApi) GetActivityDetailsWithRetry(activityID string, maxRetries int)
 	var err error
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		n.logger.Infof("Attempt %d to fetch activity details for %s\n", attempt, activityID)
+		n.logger.Debugf("Attempt %d to fetch activity details for %s\n", attempt, activityID)
 
 		body, err = n.GetActivityDetails(activityID)
 		if err == nil {
@@ -167,7 +167,7 @@ func (n *NikeApi) GetActivityDetailsWithRetry(activityID string, maxRetries int)
 func (n *NikeApi) GetActivityDetails(activityID string) ([]byte, error) {
 	// Construct the request
 	url := fmt.Sprintf(n.ActivityDetailsURL, activityID)
-	n.logger.Infof("New GET Request on: %s\n", url)
+	n.logger.Debugf("New GET Request on: %s\n", url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -184,7 +184,7 @@ func (n *NikeApi) GetActivityDetails(activityID string) ([]byte, error) {
 	defer resp.Body.Close()
 
 	// Print the response status
-	n.logger.Infof("Response status: %s\n", resp.Status)
+	n.logger.Debugf("Response status: %s\n", resp.Status)
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("error getting activity details: %s", resp.Status)
 	}
@@ -195,6 +195,6 @@ func (n *NikeApi) GetActivityDetails(activityID string) ([]byte, error) {
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
-	n.logger.Infof("Successfully fetched details for activity ID: %s\n", activityID)
+	n.logger.Debugf("Successfully fetched details for activity ID: %s\n", activityID)
 	return body, nil
 }

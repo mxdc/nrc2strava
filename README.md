@@ -72,21 +72,18 @@ The FIT files will be saved in the `./output` directory.
 
 The Strava tokens are stored in the browser cookies.
 
-Log in to the [Strava.com](https://www.strava.com/) with your account, open the developer console, navigate to the **Application** tab, and locate the `_strava4_session` and `xp_session_identifier` cookies.
+Log in to the [Strava.com](https://www.strava.com/) with your account, open the developer console, navigate to the **Application** tab, and locate the `_strava4_session` cookie.
 
 Export these values as environment variables:
 ```bash
 $ export STRAVA4SESSION='<_strava4_session>'
-$ export XPSESSIONIDENTIFIER='<xp_session_identifier>'
 ```
 
 **Upload FIT Activities to Strava**
 
 Upload the FIT activities to Strava:
 ```bash
-$ bin/nrc2strava upload --fit.dir='./output' \
-                        --strava.token="$STRAVA4SESSION" \
-                        --strava.id="$XPSESSIONIDENTIFIER"
+$ bin/nrc2strava upload --fit.dir='./output' --strava.token="$STRAVA4SESSION"
 ```
 For each successful upload, the `.fit` file is moved into an `uploaded` subfolder. This way, you can run the command as many times as needed without worrying about uploading the same files multiple times.
 

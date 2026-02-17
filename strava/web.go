@@ -17,8 +17,7 @@ import (
 // StravaWeb represents the Strava Web client
 type StravaWeb struct {
 	// Cookie Data | Domain: www.strava.com
-	XpSessionIdentifier string
-	Strava4Session      string
+	Strava4Session string
 
 	// Endpoint
 	EndpointForm   string
@@ -29,14 +28,13 @@ type StravaWeb struct {
 }
 
 // NewStravaWeb initializes a new StravaWeb instance
-func NewStravaWeb(strava4Session, xpSessionIdentifier string) *StravaWeb {
+func NewStravaWeb(strava4Session string) *StravaWeb {
 	logger := logrus.New()
 	logger.SetFormatter(utils.LogFormat)
 
 	return &StravaWeb{
 		// Cookie Data | Domain: www.strava.com
-		Strava4Session:      strava4Session,
-		XpSessionIdentifier: xpSessionIdentifier,
+		Strava4Session: strava4Session,
 
 		// Endpoint
 		EndpointForm:   "https://www.strava.com/upload/select",
@@ -49,7 +47,7 @@ func NewStravaWeb(strava4Session, xpSessionIdentifier string) *StravaWeb {
 
 // LoadAuthenticityToken performs a GET request and extracts the authenticity token from the HTML response
 func (web *StravaWeb) LoadAuthenticityToken(endpoint string) (string, error) {
-	web.logger.Infof("Loading authenticity token from: %s\n", endpoint)
+	web.logger.Debugf("Loading authenticity token from: %s\n", endpoint)
 
 	// Create the HTTP request
 	req, err := http.NewRequest("GET", endpoint, nil)
@@ -59,7 +57,6 @@ func (web *StravaWeb) LoadAuthenticityToken(endpoint string) (string, error) {
 
 	// Add cookies
 	cookies := []http.Cookie{
-		{Name: "xp_session_identifier", Value: web.XpSessionIdentifier},
 		{Name: "_strava4_session", Value: web.Strava4Session},
 	}
 
@@ -76,7 +73,7 @@ func (web *StravaWeb) LoadAuthenticityToken(endpoint string) (string, error) {
 	defer resp.Body.Close()
 
 	// Print the response status
-	web.logger.Infof("Response status: %s\n", resp.Status)
+	web.logger.Debugf("Response status: %s\n", resp.Status)
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("error loading authenticity token: %s", resp.Status)
 	}
@@ -159,7 +156,7 @@ type ActivitiesResponse struct {
 }
 
 func (web *StravaWeb) UploadActivity(filePath, token string) (*UploadedActivity, error) {
-	web.logger.Infof("Uploading activity file: %s\n", filePath)
+	web.logger.Debugf("Uploading activity file: %s\n", filePath)
 
 	// Open the file
 	file, err := os.Open(filePath)
@@ -203,7 +200,6 @@ func (web *StravaWeb) UploadActivity(filePath, token string) (*UploadedActivity,
 
 	// Add cookies using req.AddCookie
 	cookies := []http.Cookie{
-		{Name: "xp_session_identifier", Value: web.XpSessionIdentifier},
 		{Name: "_strava4_session", Value: web.Strava4Session},
 	}
 
@@ -220,7 +216,7 @@ func (web *StravaWeb) UploadActivity(filePath, token string) (*UploadedActivity,
 	defer resp.Body.Close()
 
 	// Print the response status
-	web.logger.Infof("Response status: %s\n", resp.Status)
+	web.logger.Debugf("Response status: %s\n", resp.Status)
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("server returned %s", resp.Status)
 	}

@@ -49,7 +49,7 @@ func (m *Migrator) MigrateActivities() {
 
 	total := len(activitiesIds)
 	for index, activityID := range activitiesIds {
-		m.logger.Infof("Migrating activity ID: %s\n", activityID)
+		m.logger.Debugf("Migrating activity ID: %s\n", activityID)
 
 		// Fetch activity details with retry logic
 		activityDetails, err := m.nikeApi.GetActivityDetailsWithRetry(activityID, 3)
@@ -71,7 +71,7 @@ func (m *Migrator) MigrateActivities() {
 		stravaUploader := strava.NewStravaUploader(outputFilename, m.stravaWeb)
 		stravaUploader.UploadActivity(outputFilename)
 		if index < total-1 {
-			m.logger.Info("Waiting for 10 seconds before processing the next file...")
+			m.logger.Debug("Waiting for 10 seconds before processing the next file...")
 			time.Sleep(10 * time.Second)
 		}
 	}

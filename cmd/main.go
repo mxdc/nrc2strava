@@ -18,11 +18,10 @@ import (
 
 var (
 	// migrate
-	migrate                    = kingpin.Command("migrate", "Migrate NRC activities to Strava.")
-	migrateToken               = migrate.Flag("nrc.token", "NRC access token").Default("").String()
-	migrateActivityDir         = migrate.Flag("fit.dir", "FIT activities directory").Default("").String()
-	migrateStrava4Session      = migrate.Flag("strava.token", "Strava session token").Default("").String()
-	migrateXpSessionIdentifier = migrate.Flag("strava.id", "Strava session identifier").Default("").String()
+	migrate               = kingpin.Command("migrate", "Migrate NRC activities to Strava.")
+	migrateToken          = migrate.Flag("nrc.token", "NRC access token").Default("").String()
+	migrateActivityDir    = migrate.Flag("fit.dir", "FIT activities directory").Default("").String()
+	migrateStrava4Session = migrate.Flag("strava.token", "Strava session token").Default("").String()
 
 	// download
 	download              = kingpin.Command("download", "Download NRC activities.")
@@ -36,11 +35,10 @@ var (
 	outputDir        = convert.Flag("fit.dir", "FIT Activities output directory").Default("./output").String()
 
 	// upload
-	upload                    = kingpin.Command("upload", "Upload FIT activities to Strava.")
-	uploadStrava4Session      = upload.Flag("strava.token", "Strava session token").Default("").String()
-	uploadXpSessionIdentifier = upload.Flag("strava.id", "Strava session identifier").Default("").String()
-	uploadFitActivityFile     = upload.Flag("fit.file", "FIT activity file").Default("").String()
-	uploadFitActivityDir      = upload.Flag("fit.dir", "FIT activities directory").Default("").String()
+	upload                = kingpin.Command("upload", "Upload FIT activities to Strava.")
+	uploadStrava4Session  = upload.Flag("strava.token", "Strava session token").Default("").String()
+	uploadFitActivityFile = upload.Flag("fit.file", "FIT activity file").Default("").String()
+	uploadFitActivityDir  = upload.Flag("fit.dir", "FIT activities directory").Default("").String()
 
 	// logger
 	logger = logrus.New()
@@ -55,21 +53,21 @@ func main() {
 	kingpin.Version("1.0.0")
 	switch kingpin.Parse() {
 	case migrate.FullCommand():
-		handleMigrate(*migrateToken, *migrateStrava4Session, *migrateXpSessionIdentifier, *migrateActivityDir)
+		handleMigrate(*migrateToken, *migrateStrava4Session, *migrateActivityDir)
 	case download.FullCommand():
 		handleDownload(*downloadActivitiesDir, *downloadToken)
 	case convert.FullCommand():
 		handleConvert(*nrcActivitiesDir, *nrcActivityFile, *outputDir)
 	case upload.FullCommand():
-		handleUpload(*uploadFitActivityDir, *uploadFitActivityFile, *uploadStrava4Session, *uploadXpSessionIdentifier)
+		handleUpload(*uploadFitActivityDir, *uploadFitActivityFile, *uploadStrava4Session)
 	default:
 		kingpin.Usage()
 	}
 }
 
-func handleMigrate(downloadToken, strava4Session, xpSessionIdentifier, outputDir string) {
+func handleMigrate(downloadToken, strava4Session, outputDir string) {
 	nikeApi := nrc.NewNikeApi(downloadToken)
-	stravaWeb := strava.NewStravaWeb(strava4Session, xpSessionIdentifier)
+	stravaWeb := strava.NewStravaWeb(strava4Session)
 	migrate := migrator.NewMigrator(nikeApi, stravaWeb, outputDir)
 	migrate.MigrateActivities()
 }
@@ -85,13 +83,13 @@ func handleDownload(downloadActivitiesDir, accessToken string) {
 	nikeDownloader.DownloadActivities()
 }
 
-func handleUpload(fitActivityDir, fitActivityFile, strava4Session, xpSessionIdentifier string) {
+func handleUpload(fitActivityDir, fitActivityFile, strava4Session string) {
 	if len(fitActivityDir) == 0 && len(fitActivityFile) == 0 {
 		logger.Error("Please provide either a FIT activity file or a directory of FIT activities.")
 		return
 	}
 
-	stravaWeb := strava.NewStravaWeb(strava4Session, xpSessionIdentifier)
+	stravaWeb := strava.NewStravaWeb(strava4Session)
 	stravaUploader := strava.NewStravaUploader(fitActivityFile, stravaWeb)
 
 	if len(fitActivityFile) > 0 {
@@ -125,7 +123,7 @@ func handleUpload(fitActivityDir, fitActivityFile, strava4Session, xpSessionIden
 				fit.InitActivityMover(destinationDir).MoveFIT(filePath, file.Name())
 
 				if index < total-1 {
-					logger.Info("Waiting for 10 seconds before processing the next file...")
+					logger.Debug("Waiting for 10 seconds before processing the next file...")
 					time.Sleep(10 * time.Second)
 				}
 			}

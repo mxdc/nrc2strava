@@ -66,19 +66,19 @@ func (n *NikeDownloader) DownloadActivities() {
 		}
 
 		if index < total-1 {
-			n.logger.Info("Waiting for 200ms before downloading the next activity...")
+			n.logger.Debug("Waiting for 200ms before downloading the next activity...")
 			time.Sleep(200 * time.Millisecond)
 		}
 	}
 }
 
 func (n *NikeDownloader) SaveActivity(activityDetails []byte, filepath string) error {
-	n.logger.Infof("Storing activity: %s\n", filepath)
+	n.logger.Debugf("Storing activity: %s\n", filepath)
 
 	if err := os.WriteFile(filepath, activityDetails, 0644); err != nil {
 		return err
 	}
 
-	n.logger.Infof("Activity stored successfully to %s\n", filepath)
+	n.logger.Debugf("Activity stored successfully to %s\n", filepath)
 	return nil
 }

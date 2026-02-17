@@ -556,7 +556,7 @@ func (m *MetricsConverter) ParseRecords() []*mesgdef.Record {
 	StartEpochSeconds := m.StartEpochMs / 1000
 	EndEpochSeconds := m.EndEpochMs / 1000
 	totalRecords := EndEpochSeconds - StartEpochSeconds + 1
-	m.logger.Infof("Number of records: %d\n", totalRecords)
+	m.logger.Debugf("Number of records: %d\n", totalRecords)
 
 	records := make([]*mesgdef.Record, totalRecords)
 	for i := range totalRecords {
