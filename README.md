@@ -9,6 +9,7 @@ Features:
 - Converts these activities from the **.json** format to the **.fit** format, compatible with the Strava platform.
 - Handles both indoor (treadmill) and outdoor (GPS) runs.
 - Uploads **.fit** activities to Strava without requiring you to create an app on the developer platform.
+- Merges two FIT activities into a single continuous activity.
 
 ## Requirements
 
@@ -96,3 +97,22 @@ Optionally, download all your activities from Strava to your local disk:
 ```bash
 $ bin/nrc2strava strava-download --activities.dir='./strava-downloaded' --strava.token="$STRAVA4SESSION"
 ```
+
+### 4. Merge FIT Activities
+
+If you have two separate FIT activities that you want to combine into a single continuous activity (for example, if your GPS device stopped and you had to create a second activity), you can merge them:
+
+```bash
+$ bin/nrc2strava merge --fit.file1='./first_activity.fit' --fit.file2='./second_activity.fit' --output.file='./merged_activity.fit'
+```
+
+**How it works:**
+- The second activity is appended to the first activity, creating a continuous timeline
+- All data points (GPS, heart rate, cadence, speed, etc.) are preserved
+- Distance values from the second activity are adjusted to continue from where the first activity ended
+- The merged activity will have the combined distance, time, calories, and other metrics
+- Both activities must have the same sport type and sub-sport (e.g., both outdoor runs or both treadmill runs)
+
+If you omit the `--output.file` flag, a file named `merged_<timestamp>.fit` will be created in the current directory.
+
+> **Note:** The merge creates a geographic discontinuity if the activities were recorded in different locations. This is expected and acceptable for Strava.

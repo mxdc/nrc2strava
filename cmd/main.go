@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -45,6 +46,12 @@ var (
 	uploadFitActivityFile = upload.Flag("fit.file", "FIT activity file").Default("").String()
 	uploadFitActivityDir  = upload.Flag("fit.dir", "FIT activities directory").Default("").String()
 
+	// merge
+	merge           = kingpin.Command("merge", "Merge two FIT activities into one.")
+	mergeFitFile1   = merge.Flag("fit.file1", "First FIT activity file").Required().String()
+	mergeFitFile2   = merge.Flag("fit.file2", "Second FIT activity file").Required().String()
+	mergeOutputFile = merge.Flag("output.file", "Output merged FIT file path").Default("").String()
+
 	// logger
 	logger = logrus.New()
 )
@@ -67,6 +74,8 @@ func main() {
 		handleUpload(*uploadFitActivityDir, *uploadFitActivityFile, *uploadStrava4Session)
 	case stravaDownload.FullCommand():
 		handleStravaDownload(*stravaDownloadActivitiesDir, *stravaDownloadToken)
+	case merge.FullCommand():
+		handleMerge(*mergeFitFile1, *mergeFitFile2, *mergeOutputFile)
 	default:
 		kingpin.Usage()
 	}
@@ -194,4 +203,27 @@ func handleConvert(activitiesDir, activityFile, outputDir string) {
 
 		logger.Infof("✓ Finished converting %d activities\n", len(nikeActivities))
 	}
+}
+
+func handleMerge(fitFile1, fitFile2, outputFile string) {
+	if len(fitFile1) == 0 || len(fitFile2) == 0 {
+		logger.Error("Please provide both FIT activity files.")
+		return
+	}
+
+	// Generate output filename if not provided
+	if len(outputFile) == 0 {
+		timestamp := time.Now().Format("20060102_150405")
+		outputFile = fmt.Sprintf("./merged_%s.fit", timestamp)
+	}
+
+	// Create merger and execute
+	merger := fit.NewActivityMerger(fitFile1, fitFile2, outputFile)
+	err := merger.MergeActivities()
+	if err != nil {
+		logger.Errorf("Merge failed: %v\n", err)
+		return
+	}
+
+	logger.Infof("✓ Successfully merged activities into: %s\n", outputFile)
 }
