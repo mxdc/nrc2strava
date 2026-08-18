@@ -335,36 +335,25 @@ func (m *ActivityMerger) mergeRecords(records1, records2 []*mesgdef.Record, time
 
 	// Add records from second activity with adjustments
 	for _, record := range records2 {
-		adjustedRecord := mesgdef.NewRecord(nil)
+		// Convert to proto.Message to preserve all fields including UnknownFields and DeveloperFields
+		mesg := record.ToMesg(nil)
 
-		// Adjust timestamp
-		adjustedRecord.SetTimestamp(record.Timestamp.Add(timeOffset))
-
-		// Adjust distance (if present - check for non-zero)
-		if record.Distance > 0 {
-			adjustedRecord.SetDistanceScaled(float64(record.Distance) + distanceOffset)
-		}
-
-		// Copy other fields as-is (only if non-zero)
-		if record.PositionLat != 0 {
-			adjustedRecord.SetPositionLat(record.PositionLat)
-		}
-		if record.PositionLong != 0 {
-			adjustedRecord.SetPositionLong(record.PositionLong)
-		}
-		if record.Altitude != 0 {
-			adjustedRecord.SetAltitudeScaled(float64(record.Altitude) / 5.0)
-		}
-		if record.Speed > 0 {
-			adjustedRecord.SetSpeedScaled(float64(record.Speed) / 1000.0)
-		}
-		if record.HeartRate > 0 {
-			adjustedRecord.SetHeartRate(record.HeartRate)
-		}
-		if record.Cadence > 0 {
-			adjustedRecord.SetCadence(record.Cadence)
+		// Adjust timestamp and distance fields
+		for i := range mesg.Fields {
+			if mesg.Fields[i].Num == 253 { // 253 is the field number for timestamp
+				if timestamp, ok := mesg.Fields[i].Value.Any().(time.Time); ok {
+					mesg.Fields[i].Value = proto.Any(timestamp.Add(timeOffset))
+				}
+			} else if mesg.Fields[i].Num == 5 { // 5 is the field number for distance
+				if dist, ok := mesg.Fields[i].Value.Any().(uint32); ok {
+					newDist := float64(dist) + distanceOffset
+					mesg.Fields[i].Value = proto.Uint32(uint32(newDist))
+				}
+			}
 		}
 
+		// Create new Record from modified message
+		adjustedRecord := mesgdef.NewRecord(&mesg)
 		merged = append(merged, adjustedRecord)
 	}
 
