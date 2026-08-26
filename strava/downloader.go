@@ -66,13 +66,7 @@ func (s *StravaDownloader) DownloadActivities() {
 			continue
 		}
 
-		// Add cookies
-		cookies := []http.Cookie{
-			{Name: "_strava4_session", Value: s.stravaWeb.Strava4Session},
-		}
-		for _, cookie := range cookies {
-			req.AddCookie(&cookie)
-		}
+		s.stravaWeb.addSessionCookie(req)
 
 		// Send the request
 		client := &http.Client{}

@@ -49,6 +49,11 @@ func NewStravaWeb(strava4Session string) *StravaWeb {
 	}
 }
 
+// addSessionCookie attaches the _strava4_session cookie to a request
+func (web *StravaWeb) addSessionCookie(req *http.Request) {
+	req.AddCookie(&http.Cookie{Name: "_strava4_session", Value: web.Strava4Session})
+}
+
 // LoadAuthenticityToken performs a GET request and extracts the authenticity token from the HTML response
 func (web *StravaWeb) LoadAuthenticityToken(endpoint string) (string, error) {
 	web.logger.Debugf("Loading authenticity token from: %s\n", endpoint)
@@ -59,14 +64,7 @@ func (web *StravaWeb) LoadAuthenticityToken(endpoint string) (string, error) {
 		return "", fmt.Errorf("error creating request: %w", err)
 	}
 
-	// Add cookies
-	cookies := []http.Cookie{
-		{Name: "_strava4_session", Value: web.Strava4Session},
-	}
-
-	for _, cookie := range cookies {
-		req.AddCookie(&cookie)
-	}
+	web.addSessionCookie(req)
 
 	// Send the request
 	client := &http.Client{}
@@ -205,14 +203,7 @@ func (web *StravaWeb) UploadActivity(filePath, token string) (*UploadedActivity,
 	req.Header.Set("referer", web.EndpointForm)
 	req.Header.Set("x-csrf-token", token)
 
-	// Add cookies
-	cookies := []http.Cookie{
-		{Name: "_strava4_session", Value: web.Strava4Session},
-	}
-
-	for _, cookie := range cookies {
-		req.AddCookie(&cookie)
-	}
+	web.addSessionCookie(req)
 
 	// Send the request
 	client := &http.Client{}
@@ -310,14 +301,7 @@ func (s *StravaWeb) fetchActivityList(endpoint string) (*ActivitiesResponse, err
 	req.Header.Set("accept-language", "en-GB,en-US;q=0.9,en;q=0.8")
 	req.Header.Set("x-requested-with", "XMLHttpRequest")
 
-	// Add cookies
-	cookies := []http.Cookie{
-		{Name: "_strava4_session", Value: s.Strava4Session},
-	}
-
-	for _, cookie := range cookies {
-		req.AddCookie(&cookie)
-	}
+	s.addSessionCookie(req)
 
 	// Send the request
 	client := &http.Client{}
