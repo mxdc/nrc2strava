@@ -44,8 +44,8 @@ func (m *Migrator) MigrateActivities() {
 
 	m.logger.Infof("Total activity(s) to migrate: %d\n", len(activitiesIds))
 
-	activitiesConverter := converter.InitActivitiesConverter()
-	activityWriter := fit.InitActivityWriter(m.FitOutputDir)
+	activitiesConverter := converter.NewActivitiesConverter()
+	activityWriter := fit.NewActivityWriter(m.FitOutputDir)
 
 	total := len(activitiesIds)
 	for index, activityID := range activitiesIds {

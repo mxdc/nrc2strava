@@ -16,8 +16,8 @@ type ActivityMover struct {
 	logger *logrus.Logger
 }
 
-// InitActivityMover returns an initialized InitActivityMover
-func InitActivityMover(outputDir string) *ActivityMover {
+// NewActivityMover returns an initialized NewActivityMover
+func NewActivityMover(outputDir string) *ActivityMover {
 	var mover ActivityMover
 
 	mover.destinationDir = outputDir

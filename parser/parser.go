@@ -19,8 +19,8 @@ type ActivitiesParser struct {
 	logger *logrus.Logger
 }
 
-// InitActivitiesParser returns an initialized ActivitiesParser
-func InitActivitiesParser(activitiesDir, activityFile string) *ActivitiesParser {
+// NewActivitiesParser returns an initialized ActivitiesParser
+func NewActivitiesParser(activitiesDir, activityFile string) *ActivitiesParser {
 	var parser ActivitiesParser
 
 	logger := logrus.New()

@@ -19,8 +19,8 @@ type ActivityWriter struct {
 	logger *logrus.Logger
 }
 
-// InitActivityWriter returns an initialized InitActivityWriter
-func InitActivityWriter(outputDir string) *ActivityWriter {
+// NewActivityWriter returns an initialized NewActivityWriter
+func NewActivityWriter(outputDir string) *ActivityWriter {
 	var writer ActivityWriter
 
 	writer.OutputDir = outputDir

@@ -18,8 +18,8 @@ type ActivitiesConverter struct {
 	logger *logrus.Logger
 }
 
-// InitActivitiesConverter returns an initialized ActivitiesConverter
-func InitActivitiesConverter() *ActivitiesConverter {
+// NewActivitiesConverter returns an initialized ActivitiesConverter
+func NewActivitiesConverter() *ActivitiesConverter {
 	var parser ActivitiesConverter
 
 	parser.logger = logrus.New()
@@ -69,7 +69,7 @@ func (c *ActivitiesConverter) ConvertRun(nikeActivity *types.Activity) types.Run
 	activity.Events = events
 
 	// records
-	metricsConverter := InitMetricsConverter(
+	metricsConverter := NewMetricsConverter(
 		nikeActivity.StartEpochMs,
 		nikeActivity.EndEpochMs,
 		nikeActivity.ActiveDuration,

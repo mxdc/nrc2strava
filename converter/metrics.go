@@ -58,8 +58,8 @@ func isIndoor(tags map[string]string) bool {
 	return false
 }
 
-// InitMetricsConverter returns an initialized MetricsConverter
-func InitMetricsConverter(
+// NewMetricsConverter returns an initialized MetricsConverter
+func NewMetricsConverter(
 	StartEpochMs int64,
 	EndEpochMs int64,
 	ActiveDurationMs int64,

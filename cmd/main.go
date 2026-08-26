@@ -159,7 +159,7 @@ func handleUpload(fitActivityDir, fitActivityFile, strava4Session string) {
 
 			// move the file to a different directory if upload is successful
 			destinationDir := filepath.Join(fitActivityDir, "uploaded")
-			fit.InitActivityMover(destinationDir).MoveFIT(filePath, file.Name())
+			fit.NewActivityMover(destinationDir).MoveFIT(filePath, file.Name())
 
 			successCount++
 			logger.Infof("✓ Uploaded %d/%d activities\n", successCount, total)
@@ -176,9 +176,9 @@ func handleConvert(activitiesDir, activityFile, outputDir string) {
 		return
 	}
 
-	activitiesParser := parser.InitActivitiesParser(activitiesDir, activityFile)
-	activitiesConverter := converter.InitActivitiesConverter()
-	activityWriter := fit.InitActivityWriter(outputDir)
+	activitiesParser := parser.NewActivitiesParser(activitiesDir, activityFile)
+	activitiesConverter := converter.NewActivitiesConverter()
+	activityWriter := fit.NewActivityWriter(outputDir)
 
 	if len(activityFile) > 0 {
 		nikeActivity := activitiesParser.LoadActivity()
