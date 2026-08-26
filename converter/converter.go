@@ -80,7 +80,6 @@ func (c *ActivitiesConverter) ConvertRun(nikeActivity *types.Activity) types.Run
 	)
 
 	records := metricsConverter.ParseRecords()
-	// printRecordLines(records)
 	activity.Records = records
 
 	// lap

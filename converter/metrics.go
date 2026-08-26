@@ -141,20 +141,20 @@ func NewMetricsConverter(
 	return parser
 }
 
-func interpolateLatitude(timestamp int64, latitudeMetric types.Metric) float64 {
+func interpolateValue(timestamp int64, metric types.Metric) float64 {
 	// Handle timestamps before the first interval
-	if len(latitudeMetric.Values) > 0 {
-		first := latitudeMetric.Values[0]
+	if len(metric.Values) > 0 {
+		first := metric.Values[0]
 		firstStartSeconds := first.StartEpochMs / 1000
 		if timestamp < firstStartSeconds {
 			return first.Value
 		}
 	}
 
-	// Iterate through latitude intervals
-	for i := 0; i < len(latitudeMetric.Values)-1; i++ {
-		current := latitudeMetric.Values[i]
-		next := latitudeMetric.Values[i+1]
+	// Iterate through intervals
+	for i := 0; i < len(metric.Values)-1; i++ {
+		current := metric.Values[i]
+		next := metric.Values[i+1]
 
 		// Convert start and end times to seconds
 		currentStartSeconds := current.StartEpochMs / 1000
@@ -164,50 +164,13 @@ func interpolateLatitude(timestamp int64, latitudeMetric types.Metric) float64 {
 		if timestamp >= currentStartSeconds && timestamp < nextStartSeconds {
 			intervalDuration := float64(nextStartSeconds - currentStartSeconds)
 			timeElapsed := float64(timestamp - currentStartSeconds)
-			latitudeDelta := next.Value - current.Value
-			return current.Value + (latitudeDelta * (timeElapsed / intervalDuration))
+			delta := next.Value - current.Value
+			return current.Value + (delta * (timeElapsed / intervalDuration))
 		}
 	}
 
 	// Handle timestamps after the last interval
-	last := latitudeMetric.Values[len(latitudeMetric.Values)-1]
-	if timestamp >= last.StartEpochMs/1000 {
-		return last.Value
-	}
-
-	return 0 // Default value if no match is found
-}
-
-func interpolateLongitude(timestamp int64, longitudeMetric types.Metric) float64 {
-	// Handle timestamps before the first interval
-	if len(longitudeMetric.Values) > 0 {
-		first := longitudeMetric.Values[0]
-		firstStartSeconds := first.StartEpochMs / 1000
-		if timestamp < firstStartSeconds {
-			return first.Value
-		}
-	}
-
-	// Iterate through longitude intervals
-	for i := 0; i < len(longitudeMetric.Values)-1; i++ {
-		current := longitudeMetric.Values[i]
-		next := longitudeMetric.Values[i+1]
-
-		// Convert start and end times to seconds
-		currentStartSeconds := current.StartEpochMs / 1000
-		nextStartSeconds := next.StartEpochMs / 1000
-
-		// Check if the timestamp falls within the current interval
-		if timestamp >= currentStartSeconds && timestamp < nextStartSeconds {
-			intervalDuration := float64(nextStartSeconds - currentStartSeconds)
-			timeElapsed := float64(timestamp - currentStartSeconds)
-			longitudeDelta := next.Value - current.Value
-			return current.Value + (longitudeDelta * (timeElapsed / intervalDuration))
-		}
-	}
-
-	// Handle timestamps after the last interval
-	last := longitudeMetric.Values[len(longitudeMetric.Values)-1]
+	last := metric.Values[len(metric.Values)-1]
 	if timestamp >= last.StartEpochMs/1000 {
 		return last.Value
 	}
@@ -224,8 +187,8 @@ func fillPositionFromGPS(records []*mesgdef.Record, latitudeMetric, longitudeMet
 		timestamp := record.Timestamp.Unix() // Timestamp in seconds
 
 		// Interpolate latitude and longitude
-		latitude := interpolateLatitude(timestamp, latitudeMetric)
-		longitude := interpolateLongitude(timestamp, longitudeMetric)
+		latitude := interpolateValue(timestamp, latitudeMetric)
+		longitude := interpolateValue(timestamp, longitudeMetric)
 
 		// Use the library's methods to set latitude and longitude in degrees
 		record.SetPositionLatDegrees(latitude)

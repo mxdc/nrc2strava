@@ -474,20 +474,20 @@ func (m *ActivityMerger) mergeData() (*proto.FIT, error) {
 	}
 
 	// Merge records
-	mergedRecords := m.mergeRecords(records1, records2, timeOffset, distanceOffset)
+	mergedRecords := m.mergeRecords(records1, records2, distanceOffset)
 	m.logger.Infof("✓ Merged %d records (Activity1: %d, Activity2: %d)",
 		len(mergedRecords), len(records1), len(records2))
 
 	// Merge events
-	mergedEvents := m.mergeEvents(events1, events2, timeOffset)
+	mergedEvents := m.mergeEvents(events1, events2)
 	m.logger.Infof("✓ Merged %d events", len(mergedEvents))
 
 	// Merge laps into a single lap
-	mergedLap := m.createMergedLap(laps1, laps2, session1, session2, mergedRecords, timeOffset)
+	mergedLap := m.createMergedLap(laps1, laps2, session1, session2, mergedRecords)
 	m.logger.Info("✓ Created merged lap")
 
 	// Create merged session
-	mergedSession := m.createMergedSession(session1, session2, mergedRecords, timeOffset)
+	mergedSession := m.createMergedSession(session1, session2, mergedRecords)
 	m.logger.Info("✓ Created merged session")
 
 	// Create merged activity message
@@ -536,7 +536,7 @@ func (m *ActivityMerger) mergeData() (*proto.FIT, error) {
 }
 
 // mergeRecords merges records from both activities
-func (m *ActivityMerger) mergeRecords(records1, records2 []*mesgdef.Record, timeOffset time.Duration, distanceOffset float64) []*mesgdef.Record {
+func (m *ActivityMerger) mergeRecords(records1, records2 []*mesgdef.Record, distanceOffset float64) []*mesgdef.Record {
 	merged := make([]*mesgdef.Record, 0, len(records1)+len(records2))
 
 	// Add all records from first activity
@@ -574,7 +574,7 @@ func (m *ActivityMerger) mergeRecords(records1, records2 []*mesgdef.Record, time
 }
 
 // mergeEvents merges events from both activities
-func (m *ActivityMerger) mergeEvents(events1, events2 []*mesgdef.Event, timeOffset time.Duration) []*mesgdef.Event {
+func (m *ActivityMerger) mergeEvents(events1, events2 []*mesgdef.Event) []*mesgdef.Event {
 	merged := make([]*mesgdef.Event, 0, len(events1)+len(events2))
 
 	// Add all events from first activity (no filtering)
@@ -587,7 +587,7 @@ func (m *ActivityMerger) mergeEvents(events1, events2 []*mesgdef.Event, timeOffs
 }
 
 // createMergedLap creates a single merged lap from both activities' laps
-func (m *ActivityMerger) createMergedLap(laps1, laps2 []*mesgdef.Lap, session1, session2 *mesgdef.Session, mergedRecords []*mesgdef.Record, timeOffset time.Duration) *mesgdef.Lap {
+func (m *ActivityMerger) createMergedLap(laps1, laps2 []*mesgdef.Lap, session1, session2 *mesgdef.Session, mergedRecords []*mesgdef.Record) *mesgdef.Lap {
 	lap := mesgdef.NewLap(nil)
 
 	// Use start time from first activity
@@ -619,7 +619,7 @@ func (m *ActivityMerger) createMergedLap(laps1, laps2 []*mesgdef.Lap, session1, 
 }
 
 // createMergedSession creates a single merged session from both activities
-func (m *ActivityMerger) createMergedSession(session1, session2 *mesgdef.Session, mergedRecords []*mesgdef.Record, timeOffset time.Duration) *mesgdef.Session {
+func (m *ActivityMerger) createMergedSession(session1, session2 *mesgdef.Session, mergedRecords []*mesgdef.Record) *mesgdef.Session {
 	session := mesgdef.NewSession(nil)
 
 	// Set basic properties from first session
