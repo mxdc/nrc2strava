@@ -20,12 +20,12 @@ type ActivitiesConverter struct {
 
 // NewActivitiesConverter returns an initialized ActivitiesConverter
 func NewActivitiesConverter() *ActivitiesConverter {
-	var parser ActivitiesConverter
+	logger := logrus.New()
+	logger.SetFormatter(utils.LogFormat)
 
-	parser.logger = logrus.New()
-	parser.logger.SetFormatter(utils.LogFormat)
-
-	return &parser
+	return &ActivitiesConverter{
+		logger: logger,
+	}
 }
 
 // LoadActivities load JSON files into memory

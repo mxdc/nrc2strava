@@ -18,13 +18,13 @@ type ActivityMover struct {
 
 // NewActivityMover returns an initialized NewActivityMover
 func NewActivityMover(outputDir string) *ActivityMover {
-	var mover ActivityMover
+	logger := logrus.New()
+	logger.SetFormatter(utils.LogFormat)
 
-	mover.destinationDir = outputDir
-	mover.logger = logrus.New()
-	mover.logger.SetFormatter(utils.LogFormat)
-
-	return &mover
+	return &ActivityMover{
+		destinationDir: outputDir,
+		logger:         logger,
+	}
 }
 
 // MoveFIT moves FIT files

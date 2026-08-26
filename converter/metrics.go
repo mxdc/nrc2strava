@@ -68,18 +68,19 @@ func NewMetricsConverter(
 	Moments []types.Moment,
 	Tags map[string]string,
 ) *MetricsConverter {
-	var parser MetricsConverter
+	logger := logrus.New()
+	logger.SetFormatter(utils.LogFormat)
 
-	parser.logger = logrus.New()
-	parser.logger.SetFormatter(utils.LogFormat)
-
-	parser.StartEpochMs = StartEpochMs
-	parser.EndEpochMs = EndEpochMs
-	parser.Indoor = isIndoor(Tags)
-	parser.Moments = Moments
-	parser.ActiveDurationMs = ActiveDurationMs
-	parser.Metrics = Metrics
-	parser.Summaries = Summaries
+	parser := &MetricsConverter{
+		StartEpochMs:     StartEpochMs,
+		EndEpochMs:       EndEpochMs,
+		ActiveDurationMs: ActiveDurationMs,
+		Indoor:           isIndoor(Tags),
+		Moments:          Moments,
+		Metrics:          Metrics,
+		Summaries:        Summaries,
+		logger:           logger,
+	}
 
 	for _, summary := range Summaries {
 		if summary.Metric == "steps" {
@@ -137,7 +138,7 @@ func NewMetricsConverter(
 			parser.PaceMetric = metric
 		}
 	}
-	return &parser
+	return parser
 }
 
 func interpolateLatitude(timestamp int64, latitudeMetric types.Metric) float64 {
