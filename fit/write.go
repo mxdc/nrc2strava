@@ -19,15 +19,15 @@ type ActivityWriter struct {
 	logger *logrus.Logger
 }
 
-// InitActivityWriter returns an initialized InitActivityWriter
-func InitActivityWriter(outputDir string) *ActivityWriter {
-	var writer ActivityWriter
+// NewActivityWriter returns an initialized NewActivityWriter
+func NewActivityWriter(outputDir string) *ActivityWriter {
+	logger := logrus.New()
+	logger.SetFormatter(utils.LogFormat)
 
-	writer.OutputDir = outputDir
-	writer.logger = logrus.New()
-	writer.logger.SetFormatter(utils.LogFormat)
-
-	return &writer
+	return &ActivityWriter{
+		OutputDir: outputDir,
+		logger:    logger,
+	}
 }
 
 // LoadActivities load JSON files into memory

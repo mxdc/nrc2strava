@@ -18,6 +18,7 @@ type NikeApi struct {
 	ActivityListPagination string
 	ActivityDetailsURL     string
 	AccessToken            string
+	httpClient             *http.Client
 	logger                 *logrus.Logger
 }
 
@@ -30,6 +31,7 @@ func NewNikeApi(accessToken string) *NikeApi {
 		ActivityListURL:    "https://api.nike.com/plus/v3/activities/before_id/v3",
 		ActivityDetailsURL: "https://api.nike.com/sport/v3/me/activity/%s?metrics=ALL",
 		AccessToken:        accessToken,
+		httpClient:         &http.Client{Timeout: 30 * time.Second},
 		logger:             logger,
 	}
 }
@@ -77,7 +79,7 @@ func (n *NikeApi) fetchActivityList(url string) (*ActivitiesListResponse, error)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", n.AccessToken))
 
 	// Send the request
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := n.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error sending request: %w", err)
 	}
@@ -177,8 +179,7 @@ func (n *NikeApi) GetActivityDetails(activityID string) ([]byte, error) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", n.AccessToken))
 
 	// Send the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := n.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error sending request: %w", err)
 	}

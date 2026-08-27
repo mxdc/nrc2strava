@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -125,48 +124,12 @@ func handleUpload(fitActivityDir, fitActivityFile, strava4Session string) {
 	}
 
 	if len(fitActivityDir) > 0 {
-		files, err := os.ReadDir(fitActivityDir)
-		if err != nil {
+		mover := fit.NewActivityMover(filepath.Join(fitActivityDir, "uploaded"))
+		batchUploader := strava.NewBatchUploader(stravaUploader, mover)
+
+		if _, _, err := batchUploader.UploadDir(fitActivityDir); err != nil {
 			logger.Errorf("Error reading directory: %v\n", err)
-			return
 		}
-
-		// Count .fit files
-		fitFiles := []os.DirEntry{}
-		for _, file := range files {
-			if filepath.Ext(file.Name()) == ".fit" {
-				fitFiles = append(fitFiles, file)
-			}
-		}
-
-		total := len(fitFiles)
-		if total == 0 {
-			logger.Error("No .fit files to upload")
-			return
-		}
-
-		logger.Infof("Uploading %d activities...\n", total)
-
-		successCount := 0
-		for _, file := range fitFiles {
-			filePath := filepath.Join(fitActivityDir, file.Name())
-			logger.Debugf("Uploading file: %s\n", filePath)
-
-			success := stravaUploader.UploadActivity(filePath)
-			if !success {
-				return
-			}
-
-			// move the file to a different directory if upload is successful
-			destinationDir := filepath.Join(fitActivityDir, "uploaded")
-			fit.InitActivityMover(destinationDir).MoveFIT(filePath, file.Name())
-
-			successCount++
-			logger.Infof("✓ Uploaded %d/%d activities\n", successCount, total)
-			time.Sleep(100 * time.Millisecond)
-		}
-
-		logger.Infof("✓ Finished uploading %d activities\n", successCount)
 	}
 }
 
@@ -176,9 +139,9 @@ func handleConvert(activitiesDir, activityFile, outputDir string) {
 		return
 	}
 
-	activitiesParser := parser.InitActivitiesParser(activitiesDir, activityFile)
-	activitiesConverter := converter.InitActivitiesConverter()
-	activityWriter := fit.InitActivityWriter(outputDir)
+	activitiesParser := parser.NewActivitiesParser(activitiesDir, activityFile)
+	activitiesConverter := converter.NewActivitiesConverter()
+	activityWriter := fit.NewActivityWriter(outputDir)
 
 	if len(activityFile) > 0 {
 		nikeActivity := activitiesParser.LoadActivity()
@@ -194,14 +157,8 @@ func handleConvert(activitiesDir, activityFile, outputDir string) {
 			return
 		}
 
-		logger.Infof("Converting %d activities...\n", len(nikeActivities))
-
-		for _, nikeActivity := range nikeActivities {
-			run := activitiesConverter.ConvertRun(nikeActivity)
-			activityWriter.WriteFIT(run)
-		}
-
-		logger.Infof("✓ Finished converting %d activities\n", len(nikeActivities))
+		batchConverter := converter.NewBatchConverter(activitiesConverter, activityWriter)
+		batchConverter.ConvertAll(nikeActivities)
 	}
 }
 

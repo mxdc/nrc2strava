@@ -19,18 +19,16 @@ type ActivitiesParser struct {
 	logger *logrus.Logger
 }
 
-// InitActivitiesParser returns an initialized ActivitiesParser
-func InitActivitiesParser(activitiesDir, activityFile string) *ActivitiesParser {
-	var parser ActivitiesParser
-
+// NewActivitiesParser returns an initialized ActivitiesParser
+func NewActivitiesParser(activitiesDir, activityFile string) *ActivitiesParser {
 	logger := logrus.New()
 	logger.SetFormatter(utils.LogFormat)
 
-	parser.ActivitiesDir = activitiesDir
-	parser.activityFile = activityFile
-	parser.logger = logger
-
-	return &parser
+	return &ActivitiesParser{
+		ActivitiesDir: activitiesDir,
+		activityFile:  activityFile,
+		logger:        logger,
+	}
 }
 
 // LoadActivities load JSON files into memory

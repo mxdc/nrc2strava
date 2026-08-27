@@ -18,14 +18,14 @@ type ActivitiesConverter struct {
 	logger *logrus.Logger
 }
 
-// InitActivitiesConverter returns an initialized ActivitiesConverter
-func InitActivitiesConverter() *ActivitiesConverter {
-	var parser ActivitiesConverter
+// NewActivitiesConverter returns an initialized ActivitiesConverter
+func NewActivitiesConverter() *ActivitiesConverter {
+	logger := logrus.New()
+	logger.SetFormatter(utils.LogFormat)
 
-	parser.logger = logrus.New()
-	parser.logger.SetFormatter(utils.LogFormat)
-
-	return &parser
+	return &ActivitiesConverter{
+		logger: logger,
+	}
 }
 
 // LoadActivities load JSON files into memory
@@ -69,7 +69,7 @@ func (c *ActivitiesConverter) ConvertRun(nikeActivity *types.Activity) types.Run
 	activity.Events = events
 
 	// records
-	metricsConverter := InitMetricsConverter(
+	metricsConverter := NewMetricsConverter(
 		nikeActivity.StartEpochMs,
 		nikeActivity.EndEpochMs,
 		nikeActivity.ActiveDuration,
@@ -80,7 +80,6 @@ func (c *ActivitiesConverter) ConvertRun(nikeActivity *types.Activity) types.Run
 	)
 
 	records := metricsConverter.ParseRecords()
-	// printRecordLines(records)
 	activity.Records = records
 
 	// lap

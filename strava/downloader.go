@@ -3,8 +3,6 @@ package strava
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -60,38 +58,9 @@ func (s *StravaDownloader) DownloadActivities() {
 		s.logger.Debugf("Downloading from: %s\n", downloadURL)
 
 		// Download the file
-		req, err := http.NewRequest("GET", downloadURL, nil)
-		if err != nil {
-			s.logger.Errorf("Error creating request for activity %d: %v\n", activity.ID, err)
-			continue
-		}
-
-		// Add cookies
-		cookies := []http.Cookie{
-			{Name: "_strava4_session", Value: s.stravaWeb.Strava4Session},
-		}
-		for _, cookie := range cookies {
-			req.AddCookie(&cookie)
-		}
-
-		// Send the request
-		client := &http.Client{}
-		resp, err := client.Do(req)
+		bodyBytes, err := s.stravaWeb.DownloadFile(downloadURL)
 		if err != nil {
 			s.logger.Errorf("Error downloading activity %d: %v\n", activity.ID, err)
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			s.logger.Errorf("Error downloading activity %d: status %s\n", activity.ID, resp.Status)
-			continue
-		}
-
-		// Read the response body
-		bodyBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			s.logger.Errorf("Error reading response body for activity %d: %v\n", activity.ID, err)
 			continue
 		}
 
