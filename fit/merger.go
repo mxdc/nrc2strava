@@ -23,6 +23,8 @@ type ActivityMerger struct {
 	firstFit  *proto.FIT
 	secondFit *proto.FIT
 
+	deduplicator *RecordDeduplicator
+
 	logger *logrus.Logger
 }
 
@@ -35,6 +37,7 @@ func NewActivityMerger(firstPath, secondPath, outputPath string) *ActivityMerger
 		FirstActivityPath:  firstPath,
 		SecondActivityPath: secondPath,
 		OutputPath:         outputPath,
+		deduplicator:       NewRecordDeduplicator(),
 		logger:             logger,
 	}
 }
@@ -108,8 +111,8 @@ func (m *ActivityMerger) readFitFiles() error {
 func (m *ActivityMerger) validateCompatibility() error {
 	m.logger.Info("Validating activity compatibility...")
 
-	session1 := m.extractSession(m.firstFit)
-	session2 := m.extractSession(m.secondFit)
+	session1 := extractSession(m.firstFit)
+	session2 := extractSession(m.secondFit)
 
 	if session1 == nil {
 		return fmt.Errorf("first activity has no session data")
@@ -136,258 +139,6 @@ func (m *ActivityMerger) validateCompatibility() error {
 	return nil
 }
 
-// extractSession finds and returns the session message from a FIT file
-func (m *ActivityMerger) extractSession(fit *proto.FIT) *mesgdef.Session {
-	for _, mesg := range fit.Messages {
-		if mesg.Num == typedef.MesgNumSession {
-			return mesgdef.NewSession(&mesg)
-		}
-	}
-	return nil
-}
-
-// extractFileId finds and returns the FileId message from a FIT file
-func (m *ActivityMerger) extractFileId(fit *proto.FIT) *mesgdef.FileId {
-	for _, mesg := range fit.Messages {
-		if mesg.Num == typedef.MesgNumFileId {
-			return mesgdef.NewFileId(&mesg)
-		}
-	}
-	return nil
-}
-
-// extractRecords finds and returns all record messages from a FIT file
-func (m *ActivityMerger) extractRecords(fit *proto.FIT) []*mesgdef.Record {
-	var records []*mesgdef.Record
-	for _, mesg := range fit.Messages {
-		if mesg.Num == typedef.MesgNumRecord {
-			records = append(records, mesgdef.NewRecord(&mesg))
-		}
-	}
-	return records
-}
-
-// deduplicateRecords merges records with the same timestamp into single records
-func (m *ActivityMerger) deduplicateRecords(records []*mesgdef.Record) []*mesgdef.Record {
-	if len(records) == 0 {
-		return records
-	}
-
-	// Group records by timestamp, filtering out empty records
-	recordsByTime := make(map[time.Time][]*mesgdef.Record)
-	emptyRecordCount := 0
-	for _, record := range records {
-		if m.isEmptyRecord(record) {
-			emptyRecordCount++
-			continue
-		}
-		recordsByTime[record.Timestamp] = append(recordsByTime[record.Timestamp], record)
-	}
-
-	// Merge records with the same timestamp
-	deduplicated := make([]*mesgdef.Record, 0, len(recordsByTime))
-	processedTimes := make(map[time.Time]bool)
-
-	// Iterate through original records to preserve order
-	for _, record := range records {
-		if m.isEmptyRecord(record) || processedTimes[record.Timestamp] {
-			continue
-		}
-		processedTimes[record.Timestamp] = true
-
-		duplicates := recordsByTime[record.Timestamp]
-		if len(duplicates) == 1 {
-			// No duplicates, use as-is
-			deduplicated = append(deduplicated, duplicates[0])
-		} else {
-			// Merge all duplicate records into one
-			mergedRecord := m.mergeRecordFields(duplicates)
-			deduplicated = append(deduplicated, mergedRecord)
-		}
-	}
-
-	originalCount := len(records)
-	deduplicatedCount := len(deduplicated)
-	if originalCount != deduplicatedCount {
-		duplicatesRemoved := originalCount - deduplicatedCount - emptyRecordCount
-		m.logger.Infof("Deduplicated records: %d → %d (removed %d empty, %d duplicates)",
-			originalCount, deduplicatedCount, emptyRecordCount, duplicatesRemoved)
-	} else if emptyRecordCount > 0 {
-		m.logger.Infof("Removed %d empty records", emptyRecordCount)
-	}
-
-	return deduplicated
-}
-
-// isEmptyRecord checks if a record has no meaningful data (no GPS, speed, altitude, etc.)
-func (m *ActivityMerger) isEmptyRecord(record *mesgdef.Record) bool {
-	// A record is considered empty if it has no GPS coordinates and no other useful data
-	hasData := false
-
-	// Check if it has valid GPS coordinates
-	if record.PositionLat != 0x7FFFFFFF && record.PositionLong != 0x7FFFFFFF {
-		hasData = true
-	}
-
-	// Check if it has valid speed
-	if record.Speed != 0xFFFF && record.Speed > 0 {
-		hasData = true
-	}
-
-	// Check if it has valid altitude
-	if record.Altitude != 0xFFFF && record.EnhancedAltitude != 0xFFFF {
-		hasData = true
-	}
-
-	// Check if it has valid heart rate
-	if record.HeartRate != 0xFF && record.HeartRate > 0 {
-		hasData = true
-	}
-
-	// Check if it has valid cadence
-	if record.Cadence != 0xFF && record.Cadence > 0 {
-		hasData = true
-	}
-
-	return !hasData
-}
-
-// mergeRecordFields merges multiple records with the same timestamp into one record
-func (m *ActivityMerger) mergeRecordFields(records []*mesgdef.Record) *mesgdef.Record {
-	if len(records) == 0 {
-		return nil
-	}
-	if len(records) == 1 {
-		return records[0]
-	}
-
-	// Start with the first record's message
-	baseMesg := records[0].ToMesg(nil)
-
-	// Create a map of existing fields by field number
-	fieldsByNum := make(map[byte]proto.Field)
-	for _, field := range baseMesg.Fields {
-		fieldsByNum[field.Num] = field
-	}
-
-	// Merge fields from other records
-	for i := 1; i < len(records); i++ {
-		mesg := records[i].ToMesg(nil)
-		for _, field := range mesg.Fields {
-			// Only add field if it doesn't exist or if the existing field is empty/invalid
-			existing, exists := fieldsByNum[field.Num]
-			if !exists {
-				fieldsByNum[field.Num] = field
-			} else {
-				// Replace if existing value is invalid/empty and new value is not
-				existingValue := existing.Value.Any()
-				newValue := field.Value.Any()
-				if m.isEmptyValue(existingValue) && !m.isEmptyValue(newValue) {
-					fieldsByNum[field.Num] = field
-				}
-			}
-		}
-
-		// Merge DeveloperFields
-		for _, devField := range mesg.DeveloperFields {
-			baseMesg.DeveloperFields = append(baseMesg.DeveloperFields, devField)
-		}
-	}
-
-	// Rebuild fields slice from map
-	baseMesg.Fields = make([]proto.Field, 0, len(fieldsByNum))
-	for _, field := range fieldsByNum {
-		baseMesg.Fields = append(baseMesg.Fields, field)
-	}
-
-	return mesgdef.NewRecord(&baseMesg)
-}
-
-// isEmptyValue checks if a field value is empty/invalid
-func (m *ActivityMerger) isEmptyValue(value interface{}) bool {
-	if value == nil {
-		return true
-	}
-	switch v := value.(type) {
-	case uint8:
-		return v == 0xFF
-	case uint16:
-		return v == 0xFFFF
-	case uint32:
-		return v == 0xFFFFFFFF
-	case int8:
-		return v == 0x7F
-	case int16:
-		return v == 0x7FFF
-	case int32:
-		return v == 0x7FFFFFFF
-	case float32:
-		return v == 0.0
-	case float64:
-		return v == 0.0
-	case string:
-		return v == ""
-	case time.Time:
-		return v.IsZero()
-	default:
-		return false
-	}
-}
-
-// extractEvents finds and returns all event messages from a FIT file
-func (m *ActivityMerger) extractEvents(fit *proto.FIT) []*mesgdef.Event {
-	var events []*mesgdef.Event
-	for _, mesg := range fit.Messages {
-		if mesg.Num == typedef.MesgNumEvent {
-			events = append(events, mesgdef.NewEvent(&mesg))
-		}
-	}
-	return events
-}
-
-// extractLaps finds and returns all lap messages from a FIT file
-func (m *ActivityMerger) extractLaps(fit *proto.FIT) []*mesgdef.Lap {
-	var laps []*mesgdef.Lap
-	for _, mesg := range fit.Messages {
-		if mesg.Num == typedef.MesgNumLap {
-			laps = append(laps, mesgdef.NewLap(&mesg))
-		}
-	}
-	return laps
-}
-
-// extractActivity finds and returns the activity message from a FIT file
-func (m *ActivityMerger) extractActivity(fit *proto.FIT) *mesgdef.Activity {
-	for _, mesg := range fit.Messages {
-		if mesg.Num == typedef.MesgNumActivity {
-			return mesgdef.NewActivity(&mesg)
-		}
-	}
-	return nil
-}
-
-// extractDeveloperDataIds finds and returns all DeveloperDataId messages from a FIT file
-func (m *ActivityMerger) extractDeveloperDataIds(fit *proto.FIT) []*mesgdef.DeveloperDataId {
-	var ids []*mesgdef.DeveloperDataId
-	for _, mesg := range fit.Messages {
-		if mesg.Num == typedef.MesgNumDeveloperDataId {
-			ids = append(ids, mesgdef.NewDeveloperDataId(&mesg))
-		}
-	}
-	return ids
-}
-
-// extractFieldDescriptions finds and returns all FieldDescription messages from a FIT file
-func (m *ActivityMerger) extractFieldDescriptions(fit *proto.FIT) []*mesgdef.FieldDescription {
-	var descriptions []*mesgdef.FieldDescription
-	for _, mesg := range fit.Messages {
-		if mesg.Num == typedef.MesgNumFieldDescription {
-			descriptions = append(descriptions, mesgdef.NewFieldDescription(&mesg))
-		}
-	}
-	return descriptions
-}
-
 // logActivityDetails logs details about an activity session
 func (m *ActivityMerger) logActivityDetails(label string, session *mesgdef.Session) {
 	distance := float64(session.TotalDistance) / 1000.0 // Convert to km
@@ -401,25 +152,25 @@ func (m *ActivityMerger) mergeData() (*proto.FIT, error) {
 	m.logger.Info("Merging activity data...")
 
 	// Extract data from both activities
-	session1 := m.extractSession(m.firstFit)
-	session2 := m.extractSession(m.secondFit)
-	records1 := m.extractRecords(m.firstFit)
-	records2 := m.extractRecords(m.secondFit)
+	session1 := extractSession(m.firstFit)
+	session2 := extractSession(m.secondFit)
+	records1 := extractRecords(m.firstFit)
+	records2 := extractRecords(m.secondFit)
 
 	// Deduplicate records (merge records with same timestamp)
 	m.logger.Info("Deduplicating records from first activity...")
-	records1 = m.deduplicateRecords(records1)
+	records1 = m.deduplicator.Deduplicate(records1)
 	m.logger.Info("Deduplicating records from second activity...")
-	records2 = m.deduplicateRecords(records2)
+	records2 = m.deduplicator.Deduplicate(records2)
 
-	events1 := m.extractEvents(m.firstFit)
-	events2 := m.extractEvents(m.secondFit)
-	laps1 := m.extractLaps(m.firstFit)
-	laps2 := m.extractLaps(m.secondFit)
-	fileId1 := m.extractFileId(m.firstFit)
-	activity1 := m.extractActivity(m.firstFit)
-	developerDataIds1 := m.extractDeveloperDataIds(m.firstFit)
-	fieldDescriptions1 := m.extractFieldDescriptions(m.firstFit)
+	events1 := extractEvents(m.firstFit)
+	events2 := extractEvents(m.secondFit)
+	laps1 := extractLaps(m.firstFit)
+	laps2 := extractLaps(m.secondFit)
+	fileId1 := extractFileId(m.firstFit)
+	activity1 := extractActivity(m.firstFit)
+	developerDataIds1 := extractDeveloperDataIds(m.firstFit)
+	fieldDescriptions1 := extractFieldDescriptions(m.firstFit)
 
 	if len(records1) == 0 {
 		return nil, fmt.Errorf("first activity has no records")
