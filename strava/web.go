@@ -26,6 +26,8 @@ type StravaWeb struct {
 	EndpointUpload     string
 	EndpointActivities string
 
+	httpClient *http.Client
+
 	// logger
 	logger *logrus.Logger
 }
@@ -44,6 +46,8 @@ func NewStravaWeb(strava4Session string) *StravaWeb {
 		EndpointUpload:     "https://www.strava.com/upload/files",
 		EndpointActivities: "https://www.strava.com/athlete/training_activities",
 
+		httpClient: &http.Client{Timeout: 30 * time.Second},
+
 		// logger
 		logger: logger,
 	}
@@ -52,6 +56,33 @@ func NewStravaWeb(strava4Session string) *StravaWeb {
 // addSessionCookie attaches the _strava4_session cookie to a request
 func (web *StravaWeb) addSessionCookie(req *http.Request) {
 	req.AddCookie(&http.Cookie{Name: "_strava4_session", Value: web.Strava4Session})
+}
+
+// DownloadFile performs an authenticated GET request and returns the response body
+func (web *StravaWeb) DownloadFile(url string) ([]byte, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
+
+	web.addSessionCookie(req)
+
+	resp, err := web.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error sending request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("server returned %s", resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	return body, nil
 }
 
 // LoadAuthenticityToken performs a GET request and extracts the authenticity token from the HTML response
@@ -67,8 +98,7 @@ func (web *StravaWeb) LoadAuthenticityToken(endpoint string) (string, error) {
 	web.addSessionCookie(req)
 
 	// Send the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := web.httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("error sending request: %w", err)
 	}
@@ -206,8 +236,7 @@ func (web *StravaWeb) UploadActivity(filePath, token string) (*UploadedActivity,
 	web.addSessionCookie(req)
 
 	// Send the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := web.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error sending request: %w", err)
 	}
@@ -304,8 +333,7 @@ func (s *StravaWeb) fetchActivityList(endpoint string) (*ActivitiesResponse, err
 	s.addSessionCookie(req)
 
 	// Send the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error sending request: %w", err)
 	}
