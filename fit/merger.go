@@ -186,12 +186,45 @@ func (m *ActivityMerger) mergeData() (*proto.FIT, error) {
 	timeOffset := lastRecord1.Timestamp.Sub(firstRecord2.Timestamp)
 	m.logger.Infof("Time offset (not applied): %v", timeOffset)
 
+	distanceOffset := m.computeDistanceOffset(lastRecord1)
+
+	// Merge records
+	mergedRecords := m.mergeRecords(records1, records2, distanceOffset)
+	m.logger.Infof("✓ Merged %d records (Activity1: %d, Activity2: %d)",
+		len(mergedRecords), len(records1), len(records2))
+
+	// Merge events
+	mergedEvents := m.mergeEvents(events1, events2)
+	m.logger.Infof("✓ Merged %d events", len(mergedEvents))
+
+	// Merge laps into a single lap
+	mergedLap := m.createMergedLap(laps1, laps2, session1, session2, mergedRecords)
+	m.logger.Info("✓ Created merged lap")
+
+	// Create merged session
+	mergedSession := m.createMergedSession(session1, session2, mergedRecords)
+	m.logger.Info("✓ Created merged session")
+
+	// Create merged activity message
+	mergedActivity := m.createMergedActivity(activity1, mergedSession, mergedRecords)
+
+	mergedFit := buildMergedMessages(
+		fileId1, developerDataIds1, fieldDescriptions1,
+		mergedEvents, mergedRecords, mergedLap, mergedSession, mergedActivity,
+	)
+
+	return mergedFit, nil
+}
+
+// computeDistanceOffset extracts the raw distance value (in centimeters) from a record,
+// so it can be added to every record of the second activity during the merge.
+func (m *ActivityMerger) computeDistanceOffset(lastRecord *mesgdef.Record) float64 {
 	// Get the raw distance value in centimeters from the last record of activity 1
 	// We need to use the raw field value (field 5) instead of Record.Distance
 	// because Record.Distance is already converted to meters, but field 5 is in centimeters
 	var distanceOffset float64
-	lastMesg1 := records1[len(records1)-1].ToMesg(nil)
-	for _, field := range lastMesg1.Fields {
+	lastMesg := lastRecord.ToMesg(nil)
+	for _, field := range lastMesg.Fields {
 		if field.Num == 5 { // 5 is the field number for distance
 			fieldValue := field.Value.Any()
 			m.logger.Infof("Distance field type: %T, value: %v", fieldValue, fieldValue)
@@ -215,8 +248,8 @@ func (m *ActivityMerger) mergeData() (*proto.FIT, error) {
 	}
 
 	// Fallback: use Record.Distance (in meters) and convert to centimeters
-	if distanceOffset == 0 && lastRecord1.Distance > 0 {
-		distanceOffset = float64(lastRecord1.Distance) * 100.0
+	if distanceOffset == 0 && lastRecord.Distance > 0 {
+		distanceOffset = float64(lastRecord.Distance) * 100.0
 		m.logger.Infof("Using Record.Distance fallback: %.2f centimeters (%.2f meters)", distanceOffset, distanceOffset/100.0)
 	}
 
@@ -224,66 +257,61 @@ func (m *ActivityMerger) mergeData() (*proto.FIT, error) {
 		m.logger.Warn("Warning: Could not extract distance from last record, distance offset will be 0")
 	}
 
-	// Merge records
-	mergedRecords := m.mergeRecords(records1, records2, distanceOffset)
-	m.logger.Infof("✓ Merged %d records (Activity1: %d, Activity2: %d)",
-		len(mergedRecords), len(records1), len(records2))
+	return distanceOffset
+}
 
-	// Merge events
-	mergedEvents := m.mergeEvents(events1, events2)
-	m.logger.Infof("✓ Merged %d events", len(mergedEvents))
-
-	// Merge laps into a single lap
-	mergedLap := m.createMergedLap(laps1, laps2, session1, session2, mergedRecords)
-	m.logger.Info("✓ Created merged lap")
-
-	// Create merged session
-	mergedSession := m.createMergedSession(session1, session2, mergedRecords)
-	m.logger.Info("✓ Created merged session")
-
-	// Create merged activity message
-	mergedActivity := m.createMergedActivity(activity1, mergedSession, mergedRecords)
-
-	// Build the merged FIT file
+// buildMergedMessages assembles the final list of FIT messages in encoding order:
+// FileId, DeveloperDataIds and FieldDescriptions from the first activity, then the
+// merged events, records, lap, session and activity.
+func buildMergedMessages(
+	fileId *mesgdef.FileId,
+	developerDataIds []*mesgdef.DeveloperDataId,
+	fieldDescriptions []*mesgdef.FieldDescription,
+	events []*mesgdef.Event,
+	records []*mesgdef.Record,
+	lap *mesgdef.Lap,
+	session *mesgdef.Session,
+	activity *mesgdef.Activity,
+) *proto.FIT {
 	mergedFit := &proto.FIT{
 		Messages: []proto.Message{},
 	}
 
 	// Add FileId (from first activity)
-	if fileId1 != nil {
-		mergedFit.Messages = append(mergedFit.Messages, fileId1.ToMesg(nil))
+	if fileId != nil {
+		mergedFit.Messages = append(mergedFit.Messages, fileId.ToMesg(nil))
 	}
 
 	// Add DeveloperDataIds (from first activity)
-	for _, devDataId := range developerDataIds1 {
+	for _, devDataId := range developerDataIds {
 		mergedFit.Messages = append(mergedFit.Messages, devDataId.ToMesg(nil))
 	}
 
 	// Add FieldDescriptions (from first activity)
-	for _, fieldDesc := range fieldDescriptions1 {
+	for _, fieldDesc := range fieldDescriptions {
 		mergedFit.Messages = append(mergedFit.Messages, fieldDesc.ToMesg(nil))
 	}
 
 	// Add events
-	for _, event := range mergedEvents {
+	for _, event := range events {
 		mergedFit.Messages = append(mergedFit.Messages, event.ToMesg(nil))
 	}
 
 	// Add records
-	for _, record := range mergedRecords {
+	for _, record := range records {
 		mergedFit.Messages = append(mergedFit.Messages, record.ToMesg(nil))
 	}
 
 	// Add merged lap
-	mergedFit.Messages = append(mergedFit.Messages, mergedLap.ToMesg(nil))
+	mergedFit.Messages = append(mergedFit.Messages, lap.ToMesg(nil))
 
 	// Add session
-	mergedFit.Messages = append(mergedFit.Messages, mergedSession.ToMesg(nil))
+	mergedFit.Messages = append(mergedFit.Messages, session.ToMesg(nil))
 
 	// Add activity
-	mergedFit.Messages = append(mergedFit.Messages, mergedActivity.ToMesg(nil))
+	mergedFit.Messages = append(mergedFit.Messages, activity.ToMesg(nil))
 
-	return mergedFit, nil
+	return mergedFit
 }
 
 // mergeRecords merges records from both activities
